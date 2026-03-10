@@ -1,0 +1,104 @@
+{
+  "totalBlueprints": 42,
+  "totalModulesExtracted": 95,
+  "uniqueModules": 95,
+  "newModules": 0,
+  "existingModules": 0,
+  "topModules": [
+    {
+      "moduleId": "slack:CreateMessage",
+      "usageCount": 12
+    },
+    {
+      "moduleId": "builtin:BasicRouter",
+      "usageCount": 11
+    },
+    {
+      "moduleId": "openai-gpt-3:CreateCompletion",
+      "usageCount": 9
+    },
+    {
+      "moduleId": "util:TextAggregator",
+      "usageCount": 6
+    },
+    {
+      "moduleId": "builtin:BasicFeeder",
+      "usageCount": 4
+    },
+    {
+      "moduleId": "postgres:InsertIntoTable",
+      "usageCount": 4
+    },
+    {
+      "moduleId": "salesforce:ActionCreateObject",
+      "usageCount": 3
+    },
+    {
+      "moduleId": "hubspotcrm:createRecord2020",
+      "usageCount": 3
+    },
+    {
+      "moduleId": "typeform:WatchEventsWithResponses",
+      "usageCount": 3
+    },
+    {
+      "moduleId": "airtable:ActionCreateRecord",
+      "usageCount": 3
+    },
+    {
+      "moduleId": "salesforce:createAResponsibleRecord",
+      "usageCount": 3
+    },
+    {
+      "moduleId": "gateway:CustomWebHook",
+      "usageCount": 3
+    },
+    {
+      "moduleId": "salesforce:listRecordsInAnObject",
+      "usageCount": 3
+    },
+    {
+      "moduleId": "salesforce:TriggerNewObject",
+      "usageCount": 2
+    },
+    {
+      "moduleId": "stripe:watchEvents",
+      "usageCount": 2
+    },
+    {
+      "moduleId": "util:SetVariable2",
+      "usageCount": 2
+    },
+    {
+      "moduleId": "wordpress:watchPosts",
+      "usageCount": 2
+    },
+    {
+      "moduleId": "salesforce:ActionSearchObject",
+      "usageCount": 2
+    },
+    {
+      "moduleId": "regexp:Parser",
+      "usageCount": 2
+    },
+    {
+      "moduleId": "hubspotcrm:watchContacts",
+      "usageCount": 2
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "Module calendly:watchInvitees: No parameters (may be connection-only module)",
+    "Module builtin:BasicRouter: No parameters (may be connection-only module)",
+    "Module stripe:watchEvents: No parameters (may be connection-only module)",
+    "Module linkedin-lead-gen-forms:watchFormResponse: No parameters (may be connection-only module)",
+    "Module typeform:WatchEventsWithResponses: No parameters (may be connection-only module)",
+    "Module slack:NewEvent: No parameters (may be connection-only module)",
+    "Module google-drive:uploadAFile: Invalid parameter: {\"type\":\"text\",\"required\":false,\"extra\":{}}",
+    "Module youtube:pollingVideos: Invalid parameter: {\"type\":\"text\",\"required\":false,\"extra\":{}}",
+    "Module browse-ai:onTaskFinished: No parameters (may be connection-only module)",
+    "Module google-cloud-firestore:createDocument: No parameters (may be connection-only module)",
+    "Module facebook-lead-ads:NewLeadMultiple: No parameters (may be connection-only module)",
+    "Module zoom:watchRecordings: No parameters (may be connection-only module)"
+  ]
+}
