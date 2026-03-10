@@ -1,0 +1,301 @@
+{
+  "extractedFrom": "Make example flows 2",
+  "date": "2026-03-10T09:08:14.960Z",
+  "totalBlueprintsInFolder": 372,
+  "totalUniqueModules": 308,
+  "newModules": 244,
+  "existingModules": 64,
+  "tier1": 29,
+  "tier2": 49,
+  "tier3": 166,
+  "topNewModules": [
+    {
+      "id": "anthropic-claude:createACompletion",
+      "count": 15,
+      "app": "Anthropic (Claude)"
+    },
+    {
+      "id": "telegram:WatchUpdates",
+      "count": 10,
+      "app": "Telegram"
+    },
+    {
+      "id": "builtin:BasicRepeater",
+      "count": 9,
+      "app": "Flow Control"
+    },
+    {
+      "id": "dfs-backlinks-api:getBacklinks",
+      "count": 9,
+      "app": "DataForSEO Backlinks API"
+    },
+    {
+      "id": "asana:CreateTask",
+      "count": 8,
+      "app": "Asana"
+    },
+    {
+      "id": "perplexity-ai:createAChatCompletion",
+      "count": 6,
+      "app": "Perplexity AI"
+    },
+    {
+      "id": "dataforseo-labs-api:getRankedKeywords",
+      "count": 6,
+      "app": "DataForSEO Labs API"
+    },
+    {
+      "id": "browser-act:test",
+      "count": 5,
+      "app": "BrowserAct"
+    },
+    {
+      "id": "ai-tools:Ask",
+      "count": 5,
+      "app": "AI Tools"
+    },
+    {
+      "id": "email:TriggerNewEmail",
+      "count": 4,
+      "app": "Email"
+    },
+    {
+      "id": "google-email:TriggerNewEmail",
+      "count": 4,
+      "app": "Gmail"
+    },
+    {
+      "id": "google-sheets:clearValuesFromRange",
+      "count": 4,
+      "app": "Google Sheets"
+    },
+    {
+      "id": "rss:TriggerNewArticle",
+      "count": 4,
+      "app": "RSS"
+    },
+    {
+      "id": "openai-gpt-3:messageAssistantAdvanced",
+      "count": 4,
+      "app": "OpenAI (ChatGPT)"
+    },
+    {
+      "id": "airtable:ActionUpdateRecords",
+      "count": 4,
+      "app": "Airtable"
+    },
+    {
+      "id": "google-sheets:createSpreadsheet",
+      "count": 4,
+      "app": "Google Sheets"
+    },
+    {
+      "id": "google-email:sendAnEmail",
+      "count": 4,
+      "app": "Gmail"
+    },
+    {
+      "id": "zerobounce:validateEmails",
+      "count": 3,
+      "app": "ZeroBounce"
+    },
+    {
+      "id": "revolut:createDraftPayment",
+      "count": 3,
+      "app": "Revolut"
+    },
+    {
+      "id": "facebook-pages:CreatePost",
+      "count": 3,
+      "app": "Facebook Pages"
+    },
+    {
+      "id": "telegram:SendReplyMessage",
+      "count": 3,
+      "app": "Telegram"
+    },
+    {
+      "id": "emercury:getAudience",
+      "count": 3,
+      "app": "Emercury"
+    },
+    {
+      "id": "emercury:getSubscribers",
+      "count": 3,
+      "app": "Emercury"
+    },
+    {
+      "id": "notion:createAPage",
+      "count": 3,
+      "app": "Notion"
+    },
+    {
+      "id": "google-drive:getAFile",
+      "count": 3,
+      "app": "Google Drive"
+    },
+    {
+      "id": "onedrive:uploadAFile",
+      "count": 3,
+      "app": "OneDrive"
+    },
+    {
+      "id": "google-docs:createADocumentFromTemplate",
+      "count": 3,
+      "app": "Google Docs"
+    },
+    {
+      "id": "airtable:ActionSearchRecords",
+      "count": 3,
+      "app": "Airtable"
+    },
+    {
+      "id": "sellsy:createTask",
+      "count": 3,
+      "app": "Sellsy"
+    },
+    {
+      "id": "zendesk:CreateTicket",
+      "count": 2,
+      "app": "Zendesk"
+    }
+  ],
+  "newApps": [
+    "AI Tools",
+    "ActiveCampaign",
+    "Airtable",
+    "Android",
+    "Anthropic (Claude)",
+    "Apify",
+    "Apify ai website crawler",
+    "Apollo",
+    "Archive",
+    "Asana",
+    "Attio",
+    "Barcode",
+    "Bitrix24",
+    "BrowserAct",
+    "CSV",
+    "Clearbit",
+    "ClickUp",
+    "Cloudconvert",
+    "Cloudmersive",
+    "Code",
+    "Comidp",
+    "DataForSEO Backlinks API",
+    "DataForSEO Labs API",
+    "Datastore",
+    "Deepl",
+    "Discord",
+    "Dropbox",
+    "Easyship",
+    "Egnyte",
+    "Email",
+    "Emercury",
+    "Etsy",
+    "Eventbrite",
+    "Everhour",
+    "Facebook Conversions API",
+    "Facebook Insights",
+    "Facebook Lead Ads",
+    "Facebook Pages",
+    "Fakturoid",
+    "Flow Control",
+    "Focuster",
+    "Gakunin rdm",
+    "Gemini AI",
+    "GetResponse",
+    "Gmail",
+    "Google Ads",
+    "Google Calendar",
+    "Google Cloud TTS",
+    "Google Cloud Vision",
+    "Google Contacts",
+    "Google Docs",
+    "Google Drive",
+    "Google Forms",
+    "Google Sheets",
+    "Gotomeeting",
+    "HTML/CSS to Image",
+    "HTTP",
+    "HubSpot CRM",
+    "Instagram",
+    "Instagram Business",
+    "Jitbit",
+    "Jotform",
+    "KlickTipp",
+    "Koncile advanced ocr",
+    "Layerre",
+    "Leonardo AI",
+    "LionDesk",
+    "Loyverse",
+    "MailboxValidator",
+    "Mailchimp",
+    "MaintainX",
+    "ManyChat",
+    "Math",
+    "MessageBird",
+    "Mindee",
+    "Mitto SMS",
+    "Mollie",
+    "Monday.com",
+    "Notion",
+    "Obras Online",
+    "OneCRM",
+    "OneDrive",
+    "OpenAI (ChatGPT)",
+    "ParseHub",
+    "Perplexity AI",
+    "PhantomBuster",
+    "Phonenumber",
+    "Pipedrive",
+    "Plumsail documents",
+    "Podio",
+    "Predict Leads",
+    "Prestashop",
+    "Productboard",
+    "Questionpro",
+    "QuickBooks",
+    "RAYNET CRM",
+    "RSS",
+    "Rebrandly",
+    "RegExp",
+    "Revolut",
+    "RingCentral",
+    "Rws language cloud",
+    "Sage Accounting",
+    "Salesflare",
+    "Salesforce",
+    "Salesloft",
+    "Scenario service",
+    "Sellsy",
+    "Shopify",
+    "Short cm",
+    "Simvoly2",
+    "Slack",
+    "Slybroadcast",
+    "Smartsheet",
+    "Softr",
+    "Swapcard",
+    "Tabidoo",
+    "Teamleader",
+    "Telegram",
+    "Tools",
+    "Trello",
+    "VK.com",
+    "Webhooks",
+    "WhatsApp Business",
+    "WhatsScale",
+    "Wild apricot",
+    "WooCommerce",
+    "WordPress",
+    "Yeeflow",
+    "Z-API",
+    "Zendesk",
+    "ZeroBounce",
+    "Zoho CRM",
+    "Zoho Invoice",
+    "Zoho Sign",
+    "Zoom user"
+  ]
+}
