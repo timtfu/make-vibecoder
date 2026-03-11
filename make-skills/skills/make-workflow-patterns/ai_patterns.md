@@ -27,14 +27,12 @@ Trigger any event → Claude analyzes → Output result.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "anthropic-claude:createAMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "model": "claude-opus-4-6",
@@ -42,7 +40,7 @@ Trigger any event → Claude analyzes → Output result.
         "messages": [
           {
             "role": "user",
-            "content": "Analyze this content and provide key insights:\n\n{{1.data.content}}"
+            "content": [{"type": "text", "text": "Analyze this content and provide key insights:\n\n{{1.data.content}}"}]
           }
         ]
       }
@@ -50,7 +48,6 @@ Trigger any event → Claude analyzes → Output result.
     {
       "id": 3,
       "module": "slack:ActionPostMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "channel": "#ai-insights",
@@ -79,14 +76,12 @@ Use `http:ActionSendData` to call OpenAI — NOT the openai:* modules.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "http:ActionSendData",
-      "version": 3,
       "parameters": {},
       "mapper": {
         "url": "https://api.openai.com/v1/chat/completions",
@@ -103,7 +98,6 @@ Use `http:ActionSendData` to call OpenAI — NOT the openai:* modules.
     {
       "id": 3,
       "module": "slack:ActionPostMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "channel": "#ai-results",
@@ -130,14 +124,12 @@ Watch emails, summarize with AI, post to Slack.
     {
       "id": 1,
       "module": "gmail:WatchEmails",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "anthropic-claude:createAMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "model": "claude-haiku-4-5-20251001",
@@ -145,7 +137,7 @@ Watch emails, summarize with AI, post to Slack.
         "messages": [
           {
             "role": "user",
-            "content": "Summarize this email in 2 sentences. Subject: {{1.subject}}\n\nBody: {{1.snippet}}"
+            "content": [{"type": "text", "text": "Summarize this email in 2 sentences. Subject: {{1.subject}}\n\nBody: {{1.snippet}}"}]
           }
         ]
       }
@@ -153,7 +145,6 @@ Watch emails, summarize with AI, post to Slack.
     {
       "id": 3,
       "module": "slack:ActionPostMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "channel": "#inbox-summary",
@@ -178,14 +169,12 @@ Scrape a URL, extract data with AI, store in Airtable.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "http:ActionSendData",
-      "version": 3,
       "parameters": {},
       "mapper": {
         "url": "{{1.data.url}}",
@@ -196,7 +185,6 @@ Scrape a URL, extract data with AI, store in Airtable.
     {
       "id": 3,
       "module": "anthropic-claude:createAMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "model": "claude-sonnet-4-6",
@@ -204,7 +192,7 @@ Scrape a URL, extract data with AI, store in Airtable.
         "messages": [
           {
             "role": "user",
-            "content": "Extract the following from this web page content as JSON: {title, author, date, summary}.\n\nContent: {{2.data}}"
+            "content": [{"type": "text", "text": "Extract the following from this web page content as JSON: {title, author, date, summary}.\n\nContent: {{2.data}}"}]
           }
         ]
       }
@@ -212,14 +200,12 @@ Scrape a URL, extract data with AI, store in Airtable.
     {
       "id": 4,
       "module": "json:ParseJSON",
-      "version": 1,
       "parameters": {},
       "mapper": {"json": "{{3.content}}"}
     },
     {
       "id": 5,
       "module": "airtable:ActionCreateRecord",
-      "version": 1,
       "parameters": {
         "__IMTCONN__": "__IMTCONN__",
         "base": "appXXXXXXXXXXXXXX",
@@ -253,14 +239,12 @@ Trigger → AI generates content → Post to multiple platforms.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "anthropic-claude:createAMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "model": "claude-sonnet-4-6",
@@ -268,7 +252,7 @@ Trigger → AI generates content → Post to multiple platforms.
         "messages": [
           {
             "role": "user",
-            "content": "Create a LinkedIn post about: {{1.data.topic}}. Make it professional, 150-200 words, with hashtags."
+            "content": [{"type": "text", "text": "Create a LinkedIn post about: {{1.data.topic}}. Make it professional, 150-200 words, with hashtags."}]
           }
         ]
       }
@@ -276,7 +260,6 @@ Trigger → AI generates content → Post to multiple platforms.
     {
       "id": 3,
       "module": "http:ActionSendData",
-      "version": 3,
       "parameters": {},
       "mapper": {
         "url": "https://api.linkedin.com/v2/ugcPosts",

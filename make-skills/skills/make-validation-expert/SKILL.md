@@ -13,20 +13,17 @@ Interpret and fix every class of Make.com blueprint validation error.
 
 **Always run `validate_scenario` before `create_scenario`.**
 
-```javascript
-// Step 1: Validate
-const result = await validate_scenario({
-  blueprint: JSON.stringify(myBlueprint)
-})
+```
+Step 1: Validate
+  mcp__claude_ai_Make__validate_blueprint_schema({blueprint: myBlueprint})
+  OR validate_scenario({blueprint: JSON.stringify(myBlueprint)})
 
-// Step 2: Check result
-if (result.valid) {
-  // Step 3: Deploy only if valid
-  create_scenario({name: "...", blueprint: JSON.stringify(myBlueprint)})
-} else {
-  // Fix errors first
-  console.log(result.errors)
-}
+Step 2: Check result
+  If valid: true → proceed to deploy
+  If errors: [...] → fix each error, then re-validate
+
+Step 3: Deploy only after valid: true
+  create_scenario({name: "My Scenario", blueprint: JSON.stringify(myBlueprint)})
 ```
 
 ---

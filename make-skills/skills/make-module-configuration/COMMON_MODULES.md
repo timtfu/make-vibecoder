@@ -424,7 +424,7 @@ Two real modules exist in the DB (from blueprint corpus analysis):
     "messages": [
       {
         "role": "user",
-        "content": "Summarize this: {{2.body}}"
+        "content": [{"type": "text", "text": "Summarize this: {{2.body}}"}]
       }
     ]
   }

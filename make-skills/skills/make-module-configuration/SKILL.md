@@ -100,30 +100,17 @@ Where `1234567` is the numeric ID of the user's connection in their Make account
 
 The user replaces this with their actual connection ID before deploying.
 
-Modules that DON'T need connections: `gateway:CustomWebHook`, `builtin:BasicRouter`, `builtin:BasicFeeder`, `builtin:BasicAggregator`, `json:ParseJSON`, `json:CreateJSON`, `util:SetVariable`, `util:GetVariable`, `util:SetMultipleVariables`
+Modules that DON'T need connections: `gateway:CustomWebHook`, `gateway:WebhookRespond`, `builtin:BasicRouter`, `builtin:BasicFeeder`, `builtin:BasicAggregator`, `json:ParseJSON`, `json:CreateJSON`, `util:SetVariable`, `util:GetVariable`, `util:SetMultipleVariables`
 
 ---
 
-## VERIFIED MODULE VERSIONS
+## MODULE VERSIONS
 
-Always use these exact versions. `create_scenario` auto-injects them, but include them in blueprints for clarity:
+**Omit `version` in blueprints. `create_scenario` auto-injects verified versions.** Do not hardcode version numbers in your blueprints — let the server handle it.
 
-```
-gateway:CustomWebHook v1       gateway:WebhookRespond v1
-builtin:BasicRouter v1         builtin:BasicFeeder v1
-builtin:BasicAggregator v1
-json:ParseJSON v1              json:CreateJSON v1
-http:ActionSendData v3         http:ActionSendDataBasicAuth v3
-http:ActionGetFile v3          http:ActionSendDataAdvanced v3
-google-sheets:ActionAddRow v1  google-sheets:ActionUpdateRow v1
-google-sheets:ActionDeleteRow v1
-util:SetVariable v1            util:GetVariable v1
-util:SetMultipleVariables v1
-slack:ActionPostMessage v1
-datastore:ActionGetRecord v1   datastore:ActionAddRecord v1
-datastore:ActionUpdateRecord v1 datastore:ActionDeleteRecord v1
-datastore:ActionSearchRecords v1
-```
+For the canonical verified versions list, see [make-mcp-tools-expert VERIFIED MODULE VERSIONS](../make-mcp-tools-expert/SKILL.md).
+
+**Version conflict rule:** If you see a version mismatch warning during validation, it's non-blocking — `create_scenario` auto-corrects it.
 
 ---
 
@@ -181,6 +168,59 @@ In the next module, reference them:
     "text": "Order #{{1.id}} for ${{1.total_price}} from {{1.customer.email}}"
   }
 }
+```
+
+---
+
+## How to Find Your Connection ID
+
+Every module with `__IMTCONN__` needs a real numeric connection ID from your Make account.
+
+```
+Step 1: List your connections
+  mcp__claude_ai_Make__connections_list({teamId: 895750})
+  → [{id: 1234567, name: "My Slack workspace", type: "slack"}, ...]
+
+Step 2: Find the right connection by name/type
+  Use the numeric id value
+
+Step 3: Replace __IMTCONN__ placeholder
+  {"parameters": {"__IMTCONN__": 1234567}}
+```
+
+**Connection not listed?** The user hasn't connected that app yet in Make.com. They need to go to Make.com → Connections → Add Connection.
+
+---
+
+## 5-Second Config Quick Reference
+
+### Webhook trigger (no connection needed)
+```json
+{"id": 1, "module": "gateway:CustomWebHook", "parameters": {"maxResults": 1}, "mapper": {}}
+```
+
+### Slack post message
+```json
+{"id": 2, "module": "slack:ActionPostMessage",
+ "parameters": {"__IMTCONN__": 1234567},
+ "mapper": {"channel": "#general", "text": "{{1.data.message}}"}}
+```
+
+### Google Sheets add row
+```json
+{"id": 3, "module": "google-sheets:ActionAddRow",
+ "parameters": {"__IMTCONN__": 1234567},
+ "mapper": {"spreadsheetId": "/Sheet Name", "sheetName": "Sheet1",
+            "values": {"0": "{{1.name}}", "1": "{{1.email}}"}}}
+```
+`values` keys are column indices: `"0"` = column A, `"1"` = column B, etc.
+
+### HTTP request (no connection needed)
+```json
+{"id": 4, "module": "http:ActionSendData", "parameters": {},
+ "mapper": {"url": "https://api.example.com/endpoint", "method": "POST",
+            "headers": [{"name": "Authorization", "value": "Bearer {{1.apiKey}}"}],
+            "body": "{\"key\": \"{{1.value}}\"}", "bodyType": "raw", "parseResponse": true}}
 ```
 
 ---

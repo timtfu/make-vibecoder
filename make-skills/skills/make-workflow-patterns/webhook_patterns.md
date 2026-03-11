@@ -24,14 +24,12 @@ Receive data and do something with it.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 2},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "slack:ActionPostMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "channel": "#webhooks",
@@ -61,14 +59,12 @@ Receive, parse, store, and notify.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "datastore:ActionAddRecord",
-      "version": 1,
       "parameters": {"datastore": 12345},
       "mapper": {
         "key": "{{1.data.email}}",
@@ -83,7 +79,6 @@ Receive, parse, store, and notify.
     {
       "id": 3,
       "module": "slack:ActionPostMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "channel": "#leads",
@@ -93,7 +88,6 @@ Receive, parse, store, and notify.
     {
       "id": 4,
       "module": "gateway:WebhookRespond",
-      "version": 1,
       "parameters": {},
       "mapper": {
         "status": 200,
@@ -112,6 +106,8 @@ Receive, parse, store, and notify.
 
 Process with AI and return the result to the caller.
 
+⚠️ `anthropic-claude:createAMessage` is NOT in VERIFIED_MODULE_VERSIONS — if IM007 error occurs, fall back to `http:ActionSendData` → Anthropic API.
+
 ```json
 {
   "name": "AI Webhook Processor",
@@ -119,14 +115,12 @@ Process with AI and return the result to the caller.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "anthropic-claude:createAMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "model": "claude-opus-4-6",
@@ -134,7 +128,7 @@ Process with AI and return the result to the caller.
         "messages": [
           {
             "role": "user",
-            "content": "{{1.data.prompt}}"
+            "content": [{"type": "text", "text": "{{1.data.prompt}}"}]
           }
         ]
       }
@@ -142,7 +136,6 @@ Process with AI and return the result to the caller.
     {
       "id": 3,
       "module": "gateway:WebhookRespond",
-      "version": 1,
       "parameters": {},
       "mapper": {
         "status": 200,
@@ -168,21 +161,18 @@ When the webhook body needs JSON parsing.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "json:ParseJSON",
-      "version": 1,
       "parameters": {},
       "mapper": {"json": "{{1.data}}"}
     },
     {
       "id": 3,
       "module": "google-sheets:ActionAddRow",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "spreadsheetId": "/path/to/sheet",
@@ -197,7 +187,6 @@ When the webhook body needs JSON parsing.
     {
       "id": 4,
       "module": "gateway:WebhookRespond",
-      "version": 1,
       "parameters": {},
       "mapper": {
         "status": 200,
@@ -209,6 +198,8 @@ When the webhook body needs JSON parsing.
   "scheduling": {"type": "immediately"}
 }
 ```
+
+**`values` keys:** Column indices — `"0"` = column A, `"1"` = column B, etc.
 
 ---
 
@@ -223,14 +214,12 @@ Route based on event type.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 1},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "builtin:BasicRouter",
-      "version": 1,
       "mapper": null,
       "routes": [
         {
@@ -266,7 +255,6 @@ Route based on event type.
     {
       "id": 5,
       "module": "gateway:WebhookRespond",
-      "version": 1,
       "parameters": {},
       "mapper": {
         "status": 200,
@@ -308,7 +296,6 @@ From production blueprint: "Add webhook data to a Google Sheet"
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 2},
       "mapper": {}
     },

@@ -215,12 +215,13 @@ switch(input, case1, result1, case2, result2, ..., default)
 
 ### Examples
 ```
-{{if({{1.amount}} > 1000, "VIP", "Standard")}}
-{{if({{1.status}} == "active", "✓", "✗")}}
-{{ifempty({{1.phone}}, "No phone provided")}}
-{{if({{1.score}} >= 90, "A", if({{1.score}} >= 80, "B", "C"))}}
-{{switch({{1.color}}, "red", "#FF0000", "blue", "#0000FF", "#000000")}}
+{{if(1.amount > 1000, "VIP", "Standard")}}
+{{if(1.status == "active", "✓", "✗")}}
+{{ifempty(1.phone, "No phone provided")}}
+{{if(1.score >= 90, "A", if(1.score >= 80, "B", "C"))}}
+{{switch(1.color, "red", "#FF0000", "blue", "#0000FF", "#000000")}}
 ```
+Inside `{{...}}`, reference module fields without extra braces: `1.field`, not `{{1.field}}`.
 
 ---
 

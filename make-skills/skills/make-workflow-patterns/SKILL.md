@@ -18,7 +18,7 @@ Pattern library for translating automation goals into Make.com scenarios.
 | "when a webhook arrives" | `gateway:CustomWebHook` | Webhook Pattern |
 | "when a form is submitted" | `typeform:WatchResponses` or `google-forms:watchRows` | Webhook/Form Pattern |
 | "when a new Shopify order" | `shopify:WatchNewOrders` | Polling Trigger Pattern |
-| "every hour / daily / on schedule" | `builtin:BasicFeeder` on schedule | Scheduled Pattern |
+| "every hour / daily / on schedule" | Any polling trigger (e.g., `shopify:WatchNewOrders`) + `scheduling: {"type": "indefinitely", "interval": 3600}` | Scheduled Pattern |
 | "when an email arrives" | `gmail:WatchEmails` | Email Trigger Pattern |
 | "when Slack message" | `slack:TriggerNewMessage` | Instant Trigger Pattern |
 | "run manually" | `gateway:CustomWebHook` or on-demand | On-Demand Pattern |
@@ -51,14 +51,12 @@ Pattern library for translating automation goals into Make.com scenarios.
     {
       "id": 1,
       "module": "gateway:CustomWebHook",
-      "version": 1,
       "parameters": {"maxResults": 2},
       "mapper": {}
     },
     {
       "id": 2,
       "module": "slack:ActionPostMessage",
-      "version": 1,
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "channel": "#notifications",
@@ -80,6 +78,8 @@ See [webhook_patterns.md](webhook_patterns.md) for full patterns.
 
 **Use when:** Need to respond to the caller (API integration, chatbot, form handler).
 
+⚠️ `anthropic-claude:createAMessage` is NOT in VERIFIED_MODULE_VERSIONS — if IM007 error occurs, fall back to `http:ActionSendData` → Anthropic API.
+
 ```json
 {
   "flow": [
@@ -93,7 +93,7 @@ See [webhook_patterns.md](webhook_patterns.md) for full patterns.
       "mapper": {
         "model": "claude-opus-4-6",
         "max_tokens": 500,
-        "messages": [{"role": "user", "content": "{{1.data.query}}"}]
+        "messages": [{"role": "user", "content": [{"type": "text", "text": "{{1.data.query}}"}]}]
       }
     },
     {
@@ -157,6 +157,8 @@ See [webhook_patterns.md](webhook_patterns.md) for full patterns.
 }
 ```
 
+**`values` keys:** Column indices — `"0"` = column A, `"1"` = column B, etc.
+
 ---
 
 ## Pattern 4: AI-Augmented Flow
@@ -166,6 +168,8 @@ See [webhook_patterns.md](webhook_patterns.md) for full patterns.
 **Template search:** `search_templates({query: "ChatGPT summarize", category: "ai"})`
 
 See [ai_patterns.md](ai_patterns.md) for Claude, GPT, and Perplexity patterns.
+
+⚠️ `anthropic-claude:createAMessage` is NOT in VERIFIED_MODULE_VERSIONS — if IM007 error occurs, fall back to `http:ActionSendData` → Anthropic API.
 
 ```json
 {
@@ -182,7 +186,7 @@ See [ai_patterns.md](ai_patterns.md) for Claude, GPT, and Perplexity patterns.
       "mapper": {
         "model": "claude-opus-4-6",
         "max_tokens": 200,
-        "messages": [{"role": "user", "content": "Summarize this email in 2 sentences: {{1.snippet}}"}]
+        "messages": [{"role": "user", "content": [{"type": "text", "text": "Summarize this email in 2 sentences: {{1.snippet}}"}]}]
       }
     },
     {
@@ -303,7 +307,7 @@ See [data_pipeline_patterns.md](data_pipeline_patterns.md).
     {
       "id": 4, "module": "builtin:BasicAggregator",
       "parameters": {"feeder": 2},
-      "mapper": {"value": "{{3.data.result}}"}
+      "mapper": {"results": "{{3.data.result}}"}
     },
     {
       "id": 5, "module": "slack:ActionPostMessage",
@@ -314,6 +318,8 @@ See [data_pipeline_patterns.md](data_pipeline_patterns.md).
   "scheduling": {"type": "immediately"}
 }
 ```
+
+**BasicAggregator mapper key names are arbitrary** — you choose the field name. `"results": "{{3.data.result}}"` collects into `{{4.array}}` (the output is always `array`, regardless of the key name you use in mapper). Examples: `"results"`, `"items"`, `"data"` — all valid.
 
 ---
 

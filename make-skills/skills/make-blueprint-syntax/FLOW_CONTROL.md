@@ -140,28 +140,29 @@ Must be paired with an iterator — the `feeder` parameter references the iterat
 {
   "id": 5,
   "module": "builtin:BasicAggregator",
-  "version": 1,
   "parameters": {
     "feeder": 2
   },
   "mapper": {
-    "value": "{{4.result}}"
+    "results": "{{4.result}}"
   }
 }
 ```
+
+**Mapper key names are arbitrary** — choose any name (`"results"`, `"items"`, `"data"`, etc.). The key name does NOT affect the output field; the collected array is always `{{5.array}}`.
 
 ### Aggregator Parameters
 
 | Parameter | Where | Description |
 |-----------|-------|-------------|
 | `feeder` | `parameters` | Integer `id` of the iterator module |
-| `value` | `mapper` | What to collect from each iteration |
+| *(any key)* | `mapper` | What to collect from each iteration — key name is user-defined |
 
 ### Aggregator Output
 
 | Expression | Description |
 |-----------|-------------|
-| `{{5.array}}` | Array of all collected `value` items |
+| `{{5.array}}` | Array of all collected items (regardless of mapper key name) |
 | `{{length({{5.array}})}}` | Count of collected items |
 | `{{join({{5.array}}, ", ")}}` | Join all strings |
 
@@ -180,14 +181,14 @@ Must be paired with an iterator — the `feeder` parameter references the iterat
       "id": 4,
       "module": "builtin:BasicAggregator",
       "parameters": {"feeder": 2},
-      "mapper": {"value": "{{3.data.name}}"}
+      "mapper": {"names": "{{3.data.name}}"}
     },
     {
       "id": 5, "module": "slack:ActionPostMessage",
       "parameters": {"__IMTCONN__": "__IMTCONN__"},
       "mapper": {
         "channel": "#results",
-        "text": "Processed {{length({{4.array}})}} items: {{join({{4.array}}, \", \")}}"
+        "text": "Processed {{length(4.array)}} items: {{join(4.array, \", \")}}"
       }
     }
   ]
@@ -274,7 +275,7 @@ You can nest flow control:
         }
       ]
     },
-    {"id": 6, "module": "builtin:BasicAggregator", "parameters": {"feeder": 2}, "mapper": {"value": "{{2.value.id}}"}}
+    {"id": 6, "module": "builtin:BasicAggregator", "parameters": {"feeder": 2}, "mapper": {"ids": "{{2.value.id}}"}}
   ]
 }
 ```

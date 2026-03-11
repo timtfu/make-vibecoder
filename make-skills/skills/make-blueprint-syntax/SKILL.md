@@ -169,10 +169,11 @@ See [DATA_MAPPING.md](DATA_MAPPING.md) for the full function reference.
 ### Conditional / Logic
 ```
 {{if(condition, trueValue, falseValue)}}
-{{if({{1.status}} == "active", "yes", "no")}}
-{{if({{1.amount}} > 100, "high", "low")}}
-{{ifempty({{1.field}}, "default")}}   → value or "default" if empty
+{{if(1.status == "active", "yes", "no")}}
+{{if(1.amount > 100, "high", "low")}}
+{{ifempty(1.field, "default")}}   → value or "default" if empty
 ```
+Inside `{{...}}`, reference module fields without extra braces: `1.field`, not `{{1.field}}`.
 
 ### Type Conversion
 ```
@@ -264,17 +265,18 @@ Collects iterator results back into one bundle.
 {
   "id": 5,
   "module": "builtin:BasicAggregator",
-  "version": 1,
   "parameters": {
     "feeder": 2
   },
   "mapper": {
-    "value": "{{4.result}}"
+    "results": "{{4.result}}"
   }
 }
 ```
 
 `"feeder": 2` = references the iterator module with `id: 2`
+
+**Mapper key names are arbitrary** — you choose the field name (`"results"`, `"items"`, `"data"`, etc.). The key name does NOT affect the output: the aggregated array is always accessed as `{{5.array}}` regardless of the mapper key.
 
 **Output:** `{{5.array}}` — array of all collected values
 
