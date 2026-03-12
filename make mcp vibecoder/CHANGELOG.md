@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-03-12
+
+### Added
+- **`scrape-from-make-api.ts`** — Full API-driven database rebuild scraper. When `MAKE_API_KEY` is set, `npm run scrape` now fetches live module data directly from the Make REST API instead of the hand-crafted catalog. Three-phase pipeline: app discovery → module list per app → full module details per module.
+- **`npm run scrape:api`** — New standalone script to run only the API rebuild (without templates/examples).
+- **`db.addMissingColumns()`** — Idempotent migration method that `ALTER TABLE ADD COLUMN`s any new columns missing from an existing DB.
+- **`db.truncateModules()`** — Wipes the modules table and its FTS shadow for a clean rebuild.
+- **4 new columns on `modules` table**: `scope` (JSON array of required OAuth scopes), `listener` (1 = webhook/instant trigger), `returns_multiple` (1 = emits multiple bundles), `app_version` (Make app version used to fetch).
+- **`expect` schema stored as `parameters`** — Full mapper field schema with nested options, help text, advanced flags from the API. Replaces the hand-written minimal schemas.
+- **`interface` stored as `output_fields`** — Now always populated from live API data.
+- **Module type precision** — `type` column now distinguishes `instant_trigger`, `universal`, `responder` in addition to the existing `trigger`, `action`, `search`.
+- **Rate-limited API calls** — 1100 ms between every request; exponential backoff on 429 (60 s × attempt); 2 s × attempt retry on other transient errors.
+
+### Changed
+- `populateDatabase()` in `scrape-modules.ts` now routes to `scrapeFromMakeApiAndRebuild()` when `MAKE_API_KEY` is set; falls back to built-in catalog for no-API-key installs (npx scenario).
+- `getModuleCatalog()` promoted from `private` to public so the API scraper can read the app slug list without instantiating a full DB.
+- `db.enrichModule()` extended to accept `scope`, `listener`, `returns_multiple`, `app_version`.
+- `db.insertModule()` extended to persist the 4 new columns.
+- `enrich` npm script now points to `scrape-from-make-api.ts` (deprecates `scrape-from-api.ts`).
+- Version bumped to 1.7.0.
+
 ## [1.6.0] - 2026-03-12
 
 ### Added

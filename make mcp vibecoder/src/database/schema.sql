@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS modules (
     output_fields TEXT,  -- JSON: [{name, type, label}] — what the module emits
     connection_type TEXT,-- e.g. "account:google", "account:slack"
     is_deprecated INTEGER DEFAULT 0,  -- 0 or 1
+    scope TEXT,                        -- JSON array of required OAuth scopes e.g. ["chat:write:bot"]
+    listener INTEGER DEFAULT 0,        -- 1 = webhook/instant trigger
+    returns_multiple INTEGER DEFAULT 0,-- 1 = module returns multiple bundles
+    app_version INTEGER DEFAULT 1,     -- Make app version used to fetch this module
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

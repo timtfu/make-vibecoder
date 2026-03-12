@@ -144,8 +144,8 @@ export class MakeDatabase {
     insertModule(module: any) {
         // Use INSERT OR REPLACE so re-runs don't fail
         const stmt = this.db.prepare(`
-            INSERT OR REPLACE INTO modules (id, name, app, type, description, parameters, examples, documentation, output_fields, connection_type, is_deprecated)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO modules (id, name, app, type, description, parameters, examples, documentation, output_fields, connection_type, is_deprecated, scope, listener, returns_multiple, app_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
@@ -159,7 +159,11 @@ export class MakeDatabase {
             module.documentation || '',
             module.output_fields ? JSON.stringify(module.output_fields) : null,
             module.connection_type || null,
-            module.is_deprecated ? 1 : 0
+            module.is_deprecated ? 1 : 0,
+            module.scope ? JSON.stringify(module.scope) : null,
+            module.listener ? 1 : 0,
+            module.returns_multiple ? 1 : 0,
+            module.app_version ?? 1
         );
 
         // Delete old FTS entry if exists, then insert new one
@@ -178,17 +182,33 @@ export class MakeDatabase {
      * Update only the API-sourced enrichment fields on an existing module.
      * Does NOT overwrite parameters/examples/documentation.
      */
-    enrichModule(moduleId: string, enrichment: { output_fields?: any[]; connection_type?: string; is_deprecated?: boolean }) {
+    enrichModule(moduleId: string, enrichment: {
+        output_fields?: any[];
+        connection_type?: string;
+        is_deprecated?: boolean;
+        scope?: string[];
+        listener?: boolean;
+        returns_multiple?: boolean;
+        app_version?: number;
+    }) {
         this.db.prepare(`
             UPDATE modules SET
                 output_fields = COALESCE(?, output_fields),
                 connection_type = COALESCE(?, connection_type),
-                is_deprecated = ?
+                is_deprecated = ?,
+                scope = COALESCE(?, scope),
+                listener = COALESCE(?, listener),
+                returns_multiple = COALESCE(?, returns_multiple),
+                app_version = COALESCE(?, app_version)
             WHERE id = ?
         `).run(
             enrichment.output_fields ? JSON.stringify(enrichment.output_fields) : null,
             enrichment.connection_type || null,
             enrichment.is_deprecated ? 1 : 0,
+            enrichment.scope ? JSON.stringify(enrichment.scope) : null,
+            enrichment.listener != null ? (enrichment.listener ? 1 : 0) : null,
+            enrichment.returns_multiple != null ? (enrichment.returns_multiple ? 1 : 0) : null,
+            enrichment.app_version ?? null,
             moduleId
         );
         this.readCache.delete(`module:${moduleId}`);
@@ -290,6 +310,42 @@ export class MakeDatabase {
         ).run(template.id, template.name, template.description, modulesUsedJson);
         // Invalidate read cache so subsequent getTemplate() sees the new data
         this.readCache.delete(`template:${template.id}`);
+    }
+
+    /**
+     * Add any new columns to the modules table that may be missing from an existing DB.
+     * SQLite does not support multi-column ALTER TABLE, so each column is added individually.
+     * This is idempotent — safe to call on every scraper run.
+     */
+    addMissingColumns() {
+        const cols = this.db.prepare('PRAGMA table_info(modules)').all() as any[];
+        const colNames = new Set(cols.map((c) => c.name));
+
+        const newCols: [string, string][] = [
+            ['output_fields', 'TEXT'],
+            ['connection_type', 'TEXT'],
+            ['is_deprecated', 'INTEGER DEFAULT 0'],
+            ['scope', 'TEXT'],
+            ['listener', 'INTEGER DEFAULT 0'],
+            ['returns_multiple', 'INTEGER DEFAULT 0'],
+            ['app_version', 'INTEGER DEFAULT 1'],
+        ];
+
+        for (const [col, def] of newCols) {
+            if (!colNames.has(col)) {
+                this.db.exec(`ALTER TABLE modules ADD COLUMN ${col} ${def}`);
+                console.log(`  Added column: ${col}`);
+            }
+        }
+    }
+
+    /**
+     * Wipe the modules table and its FTS shadow for a full rebuild.
+     */
+    truncateModules() {
+        this.db.prepare('DELETE FROM modules').run();
+        this.db.prepare('DELETE FROM modules_fts').run();
+        this.readCache.clear();
     }
 
     close() {

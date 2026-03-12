@@ -1,6 +1,6 @@
 {
   "name": "make-mcp-server",
-  "version": "1.4.0",
+  "version": "1.7.0",
   "mcpName": "io.github.danishashko/make-mcp",
   "description": "Unofficial MCP server for Make.com — build, validate & deploy automation scenarios via AI (community project, not affiliated with Make.com)",
   "main": "dist/mcp/server.js",
@@ -25,7 +25,8 @@
     "start": "node dist/mcp/server.js",
     "start:dev": "tsx src/mcp/server.ts",
     "scrape": "tsx src/scrapers/scrape-modules.ts",
-    "enrich": "tsx src/scrapers/scrape-from-api.ts",
+    "scrape:api": "tsx src/scrapers/scrape-from-make-api.ts",
+    "enrich": "tsx src/scrapers/scrape-from-make-api.ts",
     "scrape:prod": "node dist/scrapers/scrape-modules.js",
     "dev": "tsx watch src/mcp/server.ts",
     "smoke:compat": "node scripts/smoke-compat.js",

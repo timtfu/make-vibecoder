@@ -1,4 +1,3 @@
-import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { MakeDatabase } from '../database/db.js';
@@ -34,26 +33,7 @@ export class ModuleScraper {
         this.db = new MakeDatabase();
     }
 
-    async scrapeFromMakeAPI(): Promise<MakeModule[]> {
-        const apiKey = process.env.MAKE_API_KEY;
-        if (!apiKey || apiKey === 'your_api_key_here') {
-            console.log('No valid MAKE_API_KEY set, using built-in module catalog');
-            return this.getModuleCatalog();
-        }
-
-        try {
-            const baseUrl = process.env.MAKE_API_URL || 'https://eu1.make.com/api/v2';
-            const response = await axios.get(`${baseUrl}/modules`, {
-                headers: { 'Authorization': `Token ${apiKey}` }
-            });
-            return response.data.modules;
-        } catch (error) {
-            console.log('Make API modules endpoint not available, using built-in catalog');
-            return this.getModuleCatalog();
-        }
-    }
-
-    private getModuleCatalog(): MakeModule[] {
+    getModuleCatalog(): MakeModule[] {
         return [
             // ═══════════════════════════════════════
             // WEBHOOKS (2 modules)
@@ -4937,24 +4917,30 @@ export class ModuleScraper {
     async populateDatabase() {
         console.log('Populating database with Make.com modules...');
 
-        const modules = await this.scrapeFromMakeAPI();
+        const apiKey = process.env.MAKE_API_KEY;
+        const useApiRebuild = apiKey && apiKey !== 'your_api_key_here';
 
-        let success = 0;
-        let failed = 0;
-
-        for (const mod of modules) {
-            try {
-                this.db.insertModule(mod);
-                console.log(`  ✅ ${mod.app} → ${mod.name}`);
-                success++;
-            } catch (error: any) {
-                console.error(`  ❌ ${mod.name}: ${error.message}`);
-                failed++;
+        if (useApiRebuild) {
+            console.log('MAKE_API_KEY detected — running full API-driven rebuild...');
+            // Lazy import to avoid circular dependency at module load time
+            const { scrapeFromMakeApiAndRebuild } = await import('./scrape-from-make-api.js');
+            await scrapeFromMakeApiAndRebuild(this.db);
+        } else {
+            console.log('No MAKE_API_KEY — using built-in module catalog as fallback.');
+            const modules = this.getModuleCatalog();
+            let success = 0;
+            let failed = 0;
+            for (const mod of modules) {
+                try {
+                    this.db.insertModule(mod);
+                    success++;
+                } catch (error: any) {
+                    console.error(`  ❌ ${mod.name}: ${error.message}`);
+                    failed++;
+                }
             }
+            console.log(`Done! ${success} modules inserted, ${failed} failed.`);
         }
-
-        console.log(`\nDone! ${success} modules inserted, ${failed} failed.`);
-        console.log(`Total modules in database: ${modules.length}`);
 
         // Populate blueprint templates from example flows folders
         console.log('\n🔄 Populating blueprint templates...');
