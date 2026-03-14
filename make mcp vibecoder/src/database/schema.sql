@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS modules (
     listener INTEGER DEFAULT 0,        -- 1 = webhook/instant trigger
     returns_multiple INTEGER DEFAULT 0,-- 1 = module returns multiple bundles
     app_version INTEGER DEFAULT 1,     -- Make app version used to fetch this module
+    schema_source TEXT DEFAULT 'hand-written', -- 'official-mcp' | 'blueprint-extracted' | 'hand-written'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

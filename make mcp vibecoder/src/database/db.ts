@@ -144,8 +144,8 @@ export class MakeDatabase {
     insertModule(module: any) {
         // Use INSERT OR REPLACE so re-runs don't fail
         const stmt = this.db.prepare(`
-            INSERT OR REPLACE INTO modules (id, name, app, type, description, parameters, examples, documentation, output_fields, connection_type, is_deprecated, scope, listener, returns_multiple, app_version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO modules (id, name, app, type, description, parameters, examples, documentation, output_fields, connection_type, is_deprecated, scope, listener, returns_multiple, app_version, schema_source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
@@ -163,7 +163,8 @@ export class MakeDatabase {
             module.scope ? JSON.stringify(module.scope) : null,
             module.listener ? 1 : 0,
             module.returns_multiple ? 1 : 0,
-            module.app_version ?? 1
+            module.app_version ?? 1,
+            module.schema_source || 'hand-written'
         );
 
         // Delete old FTS entry if exists, then insert new one
@@ -211,6 +212,87 @@ export class MakeDatabase {
             enrichment.app_version ?? null,
             moduleId
         );
+        this.readCache.delete(`module:${moduleId}`);
+    }
+
+    /**
+     * Update module parameters and schema_source from an enrichment source.
+     * Priority: 'official-mcp' > 'blueprint-extracted' > 'hand-written'.
+     * Blueprint-extracted enrichment will not downgrade from 'official-mcp'.
+     * Returns 1 if the row was updated, 0 if skipped.
+     */
+    enrichModuleSchema(moduleId: string, data: {
+        parameters?: any[];
+        connection_type?: string;
+        schema_source: 'blueprint-extracted' | 'official-mcp';
+    }): number {
+        const isTopPriority = data.schema_source === 'official-mcp';
+        // Lower-priority sources cannot overwrite official-mcp data
+        const whereClause = isTopPriority
+            ? 'WHERE id = ?'
+            : "WHERE id = ? AND (schema_source IS NULL OR schema_source != 'official-mcp')";
+
+        const setParts: string[] = ['schema_source = ?'];
+        const values: any[] = [data.schema_source];
+
+        if (data.parameters !== undefined) {
+            setParts.push('parameters = ?');
+            values.push(JSON.stringify(data.parameters));
+        }
+        if (data.connection_type !== undefined) {
+            if (isTopPriority) {
+                setParts.push('connection_type = ?');
+            } else {
+                // Don't override a non-null connection_type with blueprint guess
+                setParts.push('connection_type = COALESCE(?, connection_type)');
+            }
+            values.push(data.connection_type);
+        }
+
+        values.push(moduleId);
+        const result = this.db.prepare(
+            `UPDATE modules SET ${setParts.join(', ')} ${whereClause}`
+        ).run(...values);
+
+        if (result.changes > 0) {
+            this.readCache.delete(`module:${moduleId}`);
+        }
+        return result.changes;
+    }
+
+    /**
+     * Update name, description, type, and output_fields for a module.
+     * Used by official-mcp enricher to apply accurate metadata.
+     */
+    updateModuleMetadata(moduleId: string, data: {
+        name?: string;
+        description?: string;
+        type?: string;
+        output_fields?: any[];
+    }) {
+        const setParts: string[] = [];
+        const values: any[] = [];
+        if (data.name) { setParts.push('name = ?'); values.push(data.name); }
+        if (data.description) { setParts.push('description = ?'); values.push(data.description); }
+        if (data.type) { setParts.push('type = ?'); values.push(data.type); }
+        if (data.output_fields !== undefined) {
+            setParts.push('output_fields = ?');
+            values.push(JSON.stringify(data.output_fields));
+        }
+        if (setParts.length === 0) return;
+        values.push(moduleId);
+        this.db.prepare(`UPDATE modules SET ${setParts.join(', ')} WHERE id = ?`).run(...values);
+
+        // Keep FTS in sync if name changed
+        if (data.name || data.description) {
+            const mod = this.stmtGetModule.get(moduleId) as any;
+            if (mod) {
+                this.db.prepare('DELETE FROM modules_fts WHERE module_id = ?').run(moduleId);
+                this.db.prepare('INSERT INTO modules_fts(module_id, name, app, description) VALUES (?, ?, ?, ?)').run(
+                    moduleId, mod.name, mod.app, mod.description
+                );
+            }
+        }
         this.readCache.delete(`module:${moduleId}`);
     }
 
@@ -329,6 +411,7 @@ export class MakeDatabase {
             ['listener', 'INTEGER DEFAULT 0'],
             ['returns_multiple', 'INTEGER DEFAULT 0'],
             ['app_version', 'INTEGER DEFAULT 1'],
+            ['schema_source', "TEXT DEFAULT 'hand-written'"],
         ];
 
         for (const [col, def] of newCols) {

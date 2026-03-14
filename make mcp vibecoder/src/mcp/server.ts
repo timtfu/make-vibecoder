@@ -638,6 +638,7 @@ server.registerTool('get_module', {
             output_fields: mod.output_fields ? JSON.parse(mod.output_fields) : [],
             connection_type: mod.connection_type || null,
             is_deprecated: Boolean(mod.is_deprecated),
+            schema_source: mod.schema_source || 'hand-written',
         };
         if (!essentials) {
             response.documentation = mod.documentation || undefined;

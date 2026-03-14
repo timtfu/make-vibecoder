@@ -1,8 +1,11 @@
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { MakeDatabase } from '../database/db.js';
 import { populateTemplates } from './populate-templates.js';
 import { populateExamples } from './populate-examples.js';
+import { enrichModulesFromBlueprints } from './enrich-from-blueprints.js';
+import { enrichModulesFromOfficialMcp } from './enrich-from-official-mcp.js';
 
 interface MakeModule {
     id: string;
@@ -4910,12 +4913,639 @@ export class ModuleScraper {
       p('__IMTHOOK__', 'text', true, 'Webhook')
     ]),
 
+    // =========================================================================
+    // AI MODULE EXPANSIONS (v1.8.0) — verified against Make.com live API
+    // =========================================================================
+
+    // --- OpenAI additional modules ---
+    m('openai-gpt-3:createModelResponse', 'Generate a response', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Generate a response using the OpenAI Responses API',
+      [
+      p('model', 'text', true, 'Model ID (e.g. gpt-4o, o3)'),
+      p('input', 'text', true, 'Input text or messages array'),
+      p('instructions', 'text', false, 'System instructions for the model'),
+      p('temperature', 'number', false, 'Sampling temperature 0-2'),
+      p('store', 'boolean', false, 'Store the response for future retrieval'),
+    ]),
+    m('openai-gpt-3:createModeration', 'Generate a moderation', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Classify text or images as potentially harmful using the Moderation API',
+      [
+      p('input', 'text', true, 'Text or image URL to moderate'),
+      p('model', 'text', false, 'Moderation model (omni-moderation-latest)'),
+    ]),
+    m('openai-gpt-3:CreateTranslation', 'Generate a translation (Whisper)', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Translate audio into English text using the Whisper model',
+      [
+      p('file', 'buffer', true, 'Audio file to translate'),
+      p('model', 'text', true, 'Model ID (whisper-1)'),
+      p('prompt', 'text', false, 'Optional context prompt'),
+      p('response_format', 'select', false, 'Output format: json, text, srt, verbose_json, vtt'),
+    ]),
+    m('openai-gpt-3:createVectorStoreFileBatch', 'Add files to a vector store', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Add a batch of files to an existing vector store for retrieval',
+      [
+      p('vector_store_id', 'text', true, 'Vector store ID'),
+      p('file_ids', 'array', true, 'Array of file IDs to add'),
+    ]),
+    m('openai-gpt-3:createBatch', 'Create a batch', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Create a batch of API requests for asynchronous processing',
+      [
+      p('input_file_id', 'text', true, 'File ID containing batch requests (JSONL)'),
+      p('endpoint', 'text', true, 'Target API endpoint (e.g. /v1/chat/completions)'),
+      p('completion_window', 'text', true, 'Processing window (24h)'),
+    ]),
+    m('openai-gpt-3:cancelBatch', 'Cancel a batch', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Cancel an in-progress batch request',
+      [
+      p('batch_id', 'text', true, 'Batch ID to cancel'),
+    ]),
+    m('openai-gpt-3:getBatch', 'Get a batch', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Retrieve the status and details of a batch',
+      [
+      p('batch_id', 'text', true, 'Batch ID to retrieve'),
+    ]),
+    m('openai-gpt-3:listBatches', 'List batches', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'List all batches associated with the account',
+      [
+      p('limit', 'number', false, 'Maximum number of batches to return'),
+      p('after', 'text', false, 'Cursor for pagination'),
+    ]),
+    m('openai-gpt-3:deleteAConversation', 'Delete a conversation', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Delete a stored conversation/response from the Responses API',
+      [
+      p('response_id', 'text', true, 'Response ID to delete'),
+    ]),
+    m('openai-gpt-3:deleteModelResponse', 'Delete a response', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Delete a stored model response',
+      [
+      p('response_id', 'text', true, 'Response ID to delete'),
+    ]),
+    m('openai-gpt-3:editImage', 'Edit images', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Edit or extend an existing image using DALL-E with a text prompt and optional mask',
+      [
+      p('image', 'buffer', true, 'Original image file'),
+      p('prompt', 'text', true, 'Description of the desired edit'),
+      p('mask', 'buffer', false, 'Mask image (transparent areas will be edited)'),
+      p('model', 'text', false, 'Model (dall-e-2, gpt-image-1)'),
+      p('n', 'number', false, 'Number of images to generate'),
+      p('size', 'select', false, 'Image size'),
+    ]),
+    m('openai-gpt-3:generateVideo', 'Generate a video (Sora)', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Generate a video using the Sora model from a text prompt',
+      [
+      p('prompt', 'text', true, 'Text prompt describing the video'),
+      p('model', 'text', true, 'Model (sora-1.0)'),
+      p('width', 'number', false, 'Video width in pixels'),
+      p('height', 'number', false, 'Video height in pixels'),
+      p('n_seconds', 'number', false, 'Duration in seconds (5-20)'),
+    ]),
+    m('openai-gpt-3:remixVideo', 'Remix a video', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Remix an existing video with a new text prompt using Sora',
+      [
+      p('video_id', 'text', true, 'Source video ID'),
+      p('prompt', 'text', true, 'New prompt for the remix'),
+    ]),
+    m('openai-gpt-3:deleteVideo', 'Delete a video', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Delete a Sora video generation job and its output',
+      [
+      p('video_id', 'text', true, 'Video ID to delete'),
+    ]),
+    m('openai-gpt-3:getVideo', 'Get a video', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Retrieve details and download URL for a Sora video',
+      [
+      p('video_id', 'text', true, 'Video ID to retrieve'),
+    ]),
+    m('openai-gpt-3:getModelResponse', 'Get a response', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Retrieve a stored model response by ID',
+      [
+      p('response_id', 'text', true, 'Response ID to retrieve'),
+    ]),
+    m('openai-gpt-3:getAContainerFile', 'Download a container file', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Download the content of a file from an OpenAI container',
+      [
+      p('container_id', 'text', true, 'Container ID'),
+      p('file_id', 'text', true, 'File ID to download'),
+    ]),
+    m('openai-gpt-3:listVideos', 'List video jobs', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'List Sora video generation jobs',
+      [
+      p('limit', 'number', false, 'Maximum number of results'),
+      p('after', 'text', false, 'Cursor for pagination'),
+    ]),
+    m('openai-gpt-3:listInputItems', 'List input items', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'List input items for a stored response',
+      [
+      p('response_id', 'text', true, 'Response ID'),
+      p('limit', 'number', false, 'Maximum number of items'),
+    ]),
+    m('openai-gpt-3:transformTextToStructuredData', 'Transform text to structured data', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Extract structured JSON data from unstructured text using a schema',
+      [
+      p('model', 'text', true, 'Model ID'),
+      p('input', 'text', true, 'Input text to transform'),
+      p('schema', 'collection', true, 'JSON Schema describing the output structure'),
+    ]),
+    m('openai-gpt-3:uploadFile', 'Upload a file', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Upload a file to OpenAI for use in Assistants, Fine-tuning, or Batch APIs',
+      [
+      p('file', 'buffer', true, 'File content to upload'),
+      p('filename', 'text', true, 'File name with extension'),
+      p('purpose', 'select', true, 'Purpose: assistants, fine-tune, batch, vision'),
+    ]),
+    m('openai-gpt-3:makeApiCall', 'Make an API call', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'action',
+      'Make a custom HTTP request to any OpenAI API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+      p('headers', 'array', false, 'Additional request headers'),
+    ]),
+    m('openai-gpt-3:watchBatchCompleted', 'Watch batch completed', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'trigger',
+      'Trigger when an OpenAI batch processing job completes',
+      [
+      p('__IMTHOOK__', 'text', true, 'Webhook'),
+    ]),
+    m('openai-gpt-3:watchVideoJobs', 'Watch video jobs', 'OpenAI (ChatGPT, DALL-E, Whisper)', 'trigger',
+      'Trigger when a Sora video generation job status changes',
+      [
+      p('__IMTHOOK__', 'text', true, 'Webhook'),
+    ]),
+
+    // --- Anthropic Claude additional modules ---
+    m('anthropic-claude:simpleTextPrompt', 'Simple Text Prompt', 'Anthropic (Claude)', 'action',
+      'Send a simple text prompt to Claude and receive a text response',
+      [
+      p('model', 'text', true, 'Claude model ID (e.g. claude-opus-4-6, claude-sonnet-4-6)'),
+      p('prompt', 'text', true, 'User prompt text'),
+      p('system', 'text', false, 'Optional system instructions'),
+      p('max_tokens', 'number', false, 'Maximum tokens in the response'),
+    ]),
+    m('anthropic-claude:makeAnApiCall', 'Make an API Call', 'Anthropic (Claude)', 'action',
+      'Make a custom HTTP request to any Anthropic API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+    m('anthropic-claude:uploadFile', 'Upload a File', 'Anthropic (Claude)', 'action',
+      'Upload a file to the Anthropic Files API for use in messages',
+      [
+      p('file', 'buffer', true, 'File content to upload'),
+      p('filename', 'text', true, 'File name with extension'),
+      p('mime_type', 'text', false, 'MIME type of the file'),
+    ]),
+    m('anthropic-claude:downloadFile', 'Download a File', 'Anthropic (Claude)', 'action',
+      'Download the content of a file from the Anthropic Files API',
+      [
+      p('file_id', 'text', true, 'File ID to download'),
+    ]),
+    m('anthropic-claude:getFile', 'Get a File', 'Anthropic (Claude)', 'action',
+      'Retrieve metadata for a file stored in the Anthropic Files API',
+      [
+      p('file_id', 'text', true, 'File ID'),
+    ]),
+    m('anthropic-claude:deleteFile', 'Delete a File', 'Anthropic (Claude)', 'action',
+      'Delete a file from the Anthropic Files API',
+      [
+      p('file_id', 'text', true, 'File ID to delete'),
+    ]),
+    m('anthropic-claude:listFiles', 'List Files', 'Anthropic (Claude)', 'action',
+      'List all files stored in the Anthropic Files API',
+      [
+      p('limit', 'number', false, 'Maximum number of results'),
+      p('after_id', 'text', false, 'Cursor for pagination'),
+    ]),
+    m('anthropic-claude:createSkill', 'Create a Skill', 'Anthropic (Claude)', 'action',
+      'Create a new reusable skill (tool) for use with Claude',
+      [
+      p('name', 'text', true, 'Skill name'),
+      p('description', 'text', true, 'Description of what the skill does'),
+      p('input_schema', 'collection', true, 'JSON Schema for skill inputs'),
+    ]),
+    m('anthropic-claude:createSkillVersion', 'Create a Skill Version', 'Anthropic (Claude)', 'action',
+      'Create a new version of an existing Claude skill',
+      [
+      p('skill_id', 'text', true, 'Skill ID'),
+      p('description', 'text', false, 'Version description'),
+      p('input_schema', 'collection', false, 'Updated JSON Schema for inputs'),
+    ]),
+    m('anthropic-claude:getSkill', 'Get a Skill', 'Anthropic (Claude)', 'action',
+      'Retrieve metadata and definition for a Claude skill',
+      [
+      p('skill_id', 'text', true, 'Skill ID'),
+    ]),
+    m('anthropic-claude:getSkillVersion', 'Get a Skill Version', 'Anthropic (Claude)', 'action',
+      'Retrieve a specific version of a Claude skill',
+      [
+      p('skill_id', 'text', true, 'Skill ID'),
+      p('version_id', 'text', true, 'Version ID'),
+    ]),
+    m('anthropic-claude:deleteSkill', 'Delete a Skill', 'Anthropic (Claude)', 'action',
+      'Delete a Claude skill and all its versions',
+      [
+      p('skill_id', 'text', true, 'Skill ID to delete'),
+    ]),
+    m('anthropic-claude:deleteSkillVersion', 'Delete a Skill Version', 'Anthropic (Claude)', 'action',
+      'Delete a specific version of a Claude skill',
+      [
+      p('skill_id', 'text', true, 'Skill ID'),
+      p('version_id', 'text', true, 'Version ID to delete'),
+    ]),
+    m('anthropic-claude:listSkills', 'List Skills', 'Anthropic (Claude)', 'action',
+      'List all Claude skills in the account',
+      [
+      p('limit', 'number', false, 'Maximum number of results'),
+    ]),
+    m('anthropic-claude:listSkillVersions', 'List Skill Versions', 'Anthropic (Claude)', 'action',
+      'List all versions of a Claude skill',
+      [
+      p('skill_id', 'text', true, 'Skill ID'),
+    ]),
+
+    // --- Gemini AI additional modules ---
+    m('gemini-ai:simpleTextPrompt', 'Simple text prompt', 'Gemini AI', 'action',
+      'Send a simple text prompt to Gemini and get a text response',
+      [
+      p('model', 'text', true, 'Gemini model (e.g. gemini-2.0-flash, gemini-2.5-pro)'),
+      p('prompt', 'text', true, 'User prompt text'),
+      p('system_instruction', 'text', false, 'System instructions for the model'),
+      p('temperature', 'number', false, 'Sampling temperature 0-2'),
+    ]),
+    m('gemini-ai:extractStructuredData', 'Extract structured data', 'Gemini AI', 'action',
+      'Extract structured JSON data from text or documents using Gemini',
+      [
+      p('model', 'text', true, 'Gemini model ID'),
+      p('input', 'text', true, 'Input text or content'),
+      p('schema', 'collection', true, 'JSON Schema for the output structure'),
+    ]),
+    m('gemini-ai:createAnImage', 'Generate an image', 'Gemini AI', 'action',
+      'Generate images using the Gemini Imagen model from a text prompt',
+      [
+      p('model', 'text', true, 'Model (imagen-3.0-generate-002)'),
+      p('prompt', 'text', true, 'Image generation prompt'),
+      p('number_of_images', 'number', false, 'Number of images (1-4)'),
+      p('aspect_ratio', 'select', false, 'Aspect ratio: 1:1, 16:9, 9:16, 4:3, 3:4'),
+    ]),
+    m('gemini-ai:createAVideo', 'Generate a video', 'Gemini AI', 'action',
+      'Generate a short video using the Gemini Veo model from a text prompt',
+      [
+      p('model', 'text', true, 'Model (veo-2.0-generate-001)'),
+      p('prompt', 'text', true, 'Video generation prompt'),
+      p('duration_seconds', 'number', false, 'Duration in seconds (5-8)'),
+      p('aspect_ratio', 'select', false, 'Aspect ratio: 16:9, 9:16'),
+    ]),
+    m('gemini-ai:createAFileSearchStore', 'Create a file search store', 'Gemini AI', 'action',
+      'Create a corpus/file search store for document retrieval with Gemini',
+      [
+      p('display_name', 'text', true, 'Display name for the corpus'),
+      p('description', 'text', false, 'Description of the corpus'),
+    ]),
+    m('gemini-ai:getAFileSearchStore', 'Get a file search store', 'Gemini AI', 'action',
+      'Retrieve details of a Gemini file search store (corpus)',
+      [
+      p('corpus_id', 'text', true, 'Corpus/store ID'),
+    ]),
+    m('gemini-ai:getAFileFromAFileSearchStore', 'Get a file from a file search store', 'Gemini AI', 'action',
+      'Retrieve a specific file/document from a Gemini corpus',
+      [
+      p('corpus_id', 'text', true, 'Corpus ID'),
+      p('document_id', 'text', true, 'Document ID to retrieve'),
+    ]),
+    m('gemini-ai:deleteAFileSearchStore', 'Delete a file search store', 'Gemini AI', 'action',
+      'Delete a Gemini file search store (corpus) and all its documents',
+      [
+      p('corpus_id', 'text', true, 'Corpus ID to delete'),
+    ]),
+    m('gemini-ai:deleteAFileInAFileSearchStore', 'Delete a file in a file search store', 'Gemini AI', 'action',
+      'Delete a specific file/document from a Gemini corpus',
+      [
+      p('corpus_id', 'text', true, 'Corpus ID'),
+      p('document_id', 'text', true, 'Document ID to delete'),
+    ]),
+    m('gemini-ai:listFileSearchStores', 'List file search stores', 'Gemini AI', 'action',
+      'List all Gemini file search stores (corpora) in the account',
+      [
+      p('page_size', 'number', false, 'Maximum number of results per page'),
+      p('page_token', 'text', false, 'Token for pagination'),
+    ]),
+    m('gemini-ai:listFilesInFileSearchStore', 'List files from a file search store', 'Gemini AI', 'action',
+      'List all files/documents in a Gemini corpus',
+      [
+      p('corpus_id', 'text', true, 'Corpus ID'),
+      p('page_size', 'number', false, 'Maximum results per page'),
+    ]),
+    m('gemini-ai:makeApiCall', 'Make an API call', 'Gemini AI', 'action',
+      'Make a custom HTTP request to any Gemini API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- AI Tools (Make) additional modules ---
+    m('ai-tools:Extract', 'Extract information from text', 'AI Tools (Make)', 'action',
+      'Extract specific structured information from unstructured text using Make AI',
+      [
+      p('text', 'text', true, 'Input text to extract from'),
+      p('fields', 'array', true, 'Fields to extract (name, type, description)'),
+    ]),
+    m('ai-tools:Categorize', 'Categorize text', 'AI Tools (Make)', 'action',
+      'Classify or categorize text into predefined categories using Make AI',
+      [
+      p('text', 'text', true, 'Input text to categorize'),
+      p('categories', 'array', true, 'List of possible categories'),
+    ]),
+    m('ai-tools:Translate', 'Translate text', 'AI Tools (Make)', 'action',
+      'Translate text from one language to another using Make AI',
+      [
+      p('text', 'text', true, 'Input text to translate'),
+      p('target_language', 'text', true, 'Target language (e.g. French, Spanish, Japanese)'),
+      p('source_language', 'text', false, 'Source language (auto-detected if omitted)'),
+    ]),
+    m('ai-tools:DetectLanguage', 'Identify language', 'AI Tools (Make)', 'action',
+      'Detect the language of input text using Make AI',
+      [
+      p('text', 'text', true, 'Input text to analyze'),
+    ]),
+    m('ai-tools:Summarize', 'Summarize text', 'AI Tools (Make)', 'action',
+      'Generate a concise summary of longer text using Make AI',
+      [
+      p('text', 'text', true, 'Input text to summarize'),
+      p('length', 'select', false, 'Summary length: short, medium, long'),
+    ]),
+    m('ai-tools:AnalyzeSentiment', 'Analyze sentiment', 'AI Tools (Make)', 'action',
+      'Analyze the emotional tone and sentiment of text using Make AI',
+      [
+      p('text', 'text', true, 'Input text to analyze'),
+    ]),
+    m('ai-tools:Standardize', 'Standardize text', 'AI Tools (Make)', 'action',
+      'Normalize and standardize text format (dates, addresses, names, etc.) using Make AI',
+      [
+      p('text', 'text', true, 'Input text to standardize'),
+      p('format', 'text', false, 'Target format description'),
+    ]),
+    m('ai-tools:CountAndChunkText', 'Chunk text', 'AI Tools (Make)', 'action',
+      'Split large text into smaller chunks for processing with token limits',
+      [
+      p('text', 'text', true, 'Input text to chunk'),
+      p('chunk_size', 'number', false, 'Target chunk size in tokens'),
+      p('overlap', 'number', false, 'Overlap between chunks in tokens'),
+    ]),
+
+    // =========================================================================
+    // NEW APPS — Groq, Mistral AI, DeepSeek AI, Open Router, xAI, Azure OpenAI
+    // =========================================================================
+
+    // --- Groq ---
+    m('groq:chatCompletion', 'Create a Chat Completion', 'Groq', 'action',
+      'Generate a chat completion using Groq\'s ultra-fast inference API',
+      [
+      p('model', 'text', true, 'Model ID (e.g. llama-3.3-70b-versatile, mixtral-8x7b-32768)'),
+      p('messages', 'array', true, 'Array of message objects with role and content'),
+      p('temperature', 'number', false, 'Sampling temperature 0-2'),
+      p('max_tokens', 'number', false, 'Maximum tokens in the response'),
+      p('top_p', 'number', false, 'Top-p nucleus sampling'),
+      p('stream', 'boolean', false, 'Enable streaming responses'),
+    ]),
+    m('groq:createJSONChatCompletion', 'Create a JSON Chat Completion', 'Groq', 'action',
+      'Generate a structured JSON response using Groq\'s JSON mode',
+      [
+      p('model', 'text', true, 'Model ID supporting JSON mode'),
+      p('messages', 'array', true, 'Array of message objects'),
+      p('schema', 'collection', false, 'JSON Schema for the response structure'),
+    ]),
+    m('groq:analyzeImagesVision', 'Analyze Images (Vision)', 'Groq', 'action',
+      'Analyze and describe images using Groq vision models',
+      [
+      p('model', 'text', true, 'Vision model ID (e.g. llama-4-scout-17b-16e-instruct)'),
+      p('image', 'text', true, 'Image URL or base64 data'),
+      p('prompt', 'text', true, 'Question or instruction about the image'),
+    ]),
+    m('groq:speechToText', 'Create a Transcription (Whisper)', 'Groq', 'action',
+      'Transcribe audio to text using Groq\'s fast Whisper inference',
+      [
+      p('file', 'buffer', true, 'Audio file to transcribe'),
+      p('model', 'text', true, 'Model (whisper-large-v3-turbo, distil-whisper-large-v3-en)'),
+      p('language', 'text', false, 'Language code (ISO 639-1, e.g. en, fr, de)'),
+      p('prompt', 'text', false, 'Optional context prompt'),
+      p('response_format', 'select', false, 'Output format: json, text, verbose_json, vtt, srt'),
+    ]),
+    m('groq:createTranslation', 'Create a Translation (Whisper)', 'Groq', 'action',
+      'Translate audio into English using Groq\'s fast Whisper inference',
+      [
+      p('file', 'buffer', true, 'Audio file to translate'),
+      p('model', 'text', true, 'Model (whisper-large-v3)'),
+      p('response_format', 'select', false, 'Output format: json, text, verbose_json'),
+    ]),
+    m('groq:simpleTextPrompt', 'Simple Text Prompt', 'Groq', 'action',
+      'Send a simple text prompt to Groq and get a fast response',
+      [
+      p('model', 'text', true, 'Groq model ID'),
+      p('prompt', 'text', true, 'User prompt text'),
+      p('system', 'text', false, 'Optional system instructions'),
+    ]),
+    m('groq:universal', 'Make an API Call', 'Groq', 'action',
+      'Make a custom HTTP request to any Groq API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- Mistral AI ---
+    m('mistral-ai:createACompletion', 'Create a Chat Completion', 'Mistral AI', 'action',
+      'Generate a chat completion using Mistral AI models',
+      [
+      p('model', 'text', true, 'Model ID (e.g. mistral-large-latest, mistral-small-latest)'),
+      p('messages', 'array', true, 'Array of message objects with role and content'),
+      p('temperature', 'number', false, 'Sampling temperature 0-1'),
+      p('max_tokens', 'number', false, 'Maximum tokens in the response'),
+      p('top_p', 'number', false, 'Top-p nucleus sampling'),
+      p('json_mode', 'boolean', false, 'Enable JSON output mode'),
+    ]),
+    m('mistral-ai:createEmbeddings', 'Create Embeddings', 'Mistral AI', 'action',
+      'Generate vector embeddings for text using Mistral\'s embedding models',
+      [
+      p('model', 'text', true, 'Embedding model (mistral-embed)'),
+      p('input', 'array', true, 'Array of text strings to embed'),
+      p('encoding_format', 'select', false, 'Encoding format: float, base64'),
+    ]),
+    m('mistral-ai:getModels', 'List Models', 'Mistral AI', 'action',
+      'List all available Mistral AI models',
+      [
+    ]),
+    m('mistral-ai:makeAnApiCall', 'Make an API Call', 'Mistral AI', 'action',
+      'Make a custom HTTP request to any Mistral AI API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- DeepSeek AI ---
+    m('deepseek-ai:createAChatCompletion', 'Create a Chat Completion', 'DeepSeek AI', 'action',
+      'Generate a chat completion using DeepSeek AI models',
+      [
+      p('model', 'text', true, 'Model ID (e.g. deepseek-chat, deepseek-reasoner)'),
+      p('messages', 'array', true, 'Array of message objects with role and content'),
+      p('temperature', 'number', false, 'Sampling temperature 0-2'),
+      p('max_tokens', 'number', false, 'Maximum tokens in the response'),
+      p('stream', 'boolean', false, 'Enable streaming responses'),
+    ]),
+    m('deepseek-ai:listModels', 'List Models', 'DeepSeek AI', 'action',
+      'List all available DeepSeek AI models',
+      [
+    ]),
+    m('deepseek-ai:getBalance', 'Get Balance', 'DeepSeek AI', 'action',
+      'Retrieve the current API credit balance for the DeepSeek account',
+      [
+    ]),
+    m('deepseek-ai:makeAnApiCall', 'Make an API Call', 'DeepSeek AI', 'action',
+      'Make a custom HTTP request to any DeepSeek AI API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- Open Router ---
+    m('open-router:createAChatCompletion', 'Create a Chat Completion', 'Open Router', 'action',
+      'Generate a chat completion using any model available on OpenRouter',
+      [
+      p('model', 'text', true, 'Model ID (e.g. openai/gpt-4o, anthropic/claude-3-5-sonnet)'),
+      p('messages', 'array', true, 'Array of message objects with role and content'),
+      p('temperature', 'number', false, 'Sampling temperature 0-2'),
+      p('max_tokens', 'number', false, 'Maximum tokens in the response'),
+    ]),
+    m('open-router:createAChatCompletionWithFallback', 'Create a Chat Completion (with Fallback)', 'Open Router', 'action',
+      'Generate a chat completion with automatic model fallback on failure',
+      [
+      p('models', 'array', true, 'Ordered list of model IDs to try'),
+      p('messages', 'array', true, 'Array of message objects with role and content'),
+      p('temperature', 'number', false, 'Sampling temperature'),
+    ]),
+    m('open-router:listModels', 'List Models', 'Open Router', 'action',
+      'List all models available on the OpenRouter platform',
+      [
+      p('supported_parameters', 'text', false, 'Filter by supported parameter'),
+    ]),
+    m('open-router:makeAnApiCall', 'Make an API Call', 'Open Router', 'action',
+      'Make a custom HTTP request to any OpenRouter API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- xAI (Grok) ---
+    m('xai:createACompletion', 'Create a completion', 'xAI (Grok)', 'action',
+      'Generate a chat completion using xAI\'s Grok models',
+      [
+      p('model', 'text', true, 'Model ID (e.g. grok-3, grok-3-mini, grok-2-vision-1212)'),
+      p('messages', 'array', true, 'Array of message objects with role and content'),
+      p('temperature', 'number', false, 'Sampling temperature 0-2'),
+      p('max_tokens', 'number', false, 'Maximum tokens in the response'),
+    ]),
+    m('xai:generateImage', 'Generate an image', 'xAI (Grok)', 'action',
+      'Generate images using xAI\'s Aurora image generation model',
+      [
+      p('model', 'text', true, 'Model (aurora)'),
+      p('prompt', 'text', true, 'Image generation prompt'),
+      p('n', 'number', false, 'Number of images (1-10)'),
+      p('response_format', 'select', false, 'Output format: url, b64_json'),
+    ]),
+    m('xai:makeAnApiCall', 'Make an API call', 'xAI (Grok)', 'action',
+      'Make a custom HTTP request to any xAI API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- Azure OpenAI ---
+    m('azure-openai:createAChatCompletion', 'Create a Chat Completion (Prompt)', 'Azure OpenAI', 'action',
+      'Generate a chat completion using Azure-hosted OpenAI models',
+      [
+      p('deployment_id', 'text', true, 'Azure deployment name'),
+      p('messages', 'array', true, 'Array of message objects with role and content'),
+      p('temperature', 'number', false, 'Sampling temperature 0-2'),
+      p('max_tokens', 'number', false, 'Maximum tokens in the response'),
+      p('top_p', 'number', false, 'Top-p nucleus sampling'),
+    ]),
+    m('azure-openai:generateAnImage', 'Generate an Image (DALL-E 3)', 'Azure OpenAI', 'action',
+      'Generate images using DALL-E 3 through Azure OpenAI service',
+      [
+      p('deployment_id', 'text', true, 'Azure DALL-E deployment name'),
+      p('prompt', 'text', true, 'Image description prompt'),
+      p('n', 'number', false, 'Number of images (1)'),
+      p('size', 'select', false, 'Image size: 1024x1024, 1792x1024, 1024x1792'),
+      p('quality', 'select', false, 'Image quality: standard, hd'),
+      p('style', 'select', false, 'Image style: vivid, natural'),
+    ]),
+    m('azure-openai:createATranscription', 'Create a Transcription (Whisper)', 'Azure OpenAI', 'action',
+      'Transcribe audio to text using Azure-hosted Whisper model',
+      [
+      p('deployment_id', 'text', true, 'Azure Whisper deployment name'),
+      p('file', 'buffer', true, 'Audio file to transcribe'),
+      p('language', 'text', false, 'Language code (ISO 639-1)'),
+      p('response_format', 'select', false, 'Output format: json, text, srt, verbose_json, vtt'),
+    ]),
+    m('azure-openai:createATranslation', 'Create a Translation (Whisper)', 'Azure OpenAI', 'action',
+      'Translate audio into English using Azure-hosted Whisper model',
+      [
+      p('deployment_id', 'text', true, 'Azure Whisper deployment name'),
+      p('file', 'buffer', true, 'Audio file to translate'),
+      p('response_format', 'select', false, 'Output format: json, text, verbose_json'),
+    ]),
+    m('azure-openai:makeAnApiCall', 'Make an API Call', 'Azure OpenAI', 'action',
+      'Make a custom HTTP request to any Azure OpenAI API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE, PATCH'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('deployment_id', 'text', false, 'Azure deployment name (if required)'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- Perplexity AI additional modules ---
+    m('perplexity-ai:listSearchResults', 'List search results', 'Perplexity AI', 'action',
+      'Retrieve a list of search results and sources from Perplexity',
+      [
+      p('query', 'text', true, 'Search query'),
+      p('model', 'text', false, 'Model (sonar, sonar-pro, sonar-reasoning)'),
+      p('search_domain_filter', 'array', false, 'Domains to restrict or exclude'),
+      p('search_recency_filter', 'select', false, 'Recency filter: month, week, day, hour'),
+    ]),
+    m('perplexity-ai:makeApiCall', 'Make an API Call', 'Perplexity AI', 'action',
+      'Make a custom HTTP request to any Perplexity AI API endpoint',
+      [
+      p('method', 'select', true, 'HTTP method: GET, POST, PUT, DELETE'),
+      p('url', 'text', true, 'Relative path or full URL'),
+      p('body', 'collection', false, 'Request body (JSON)'),
+    ]),
+
+    // --- util (Tools) missing modules ---
+    m('util:ComposeTransformer', 'Compose', 'Tools by Make', 'action',
+      'Compose and transform data from multiple sources into a structured output',
+      [
+      p('value', 'text', true, 'Value or expression to compose'),
+    ]),
+    m('util:TextSwitcher', 'Text switcher', 'Tools by Make', 'action',
+      'Evaluate a value against multiple cases and return a matching result',
+      [
+      p('value', 'text', true, 'Input value to evaluate'),
+      p('cases', 'array', true, 'Array of case conditions and return values'),
+      p('default', 'text', false, 'Default value if no case matches'),
+    ]),
+
 
         ];
     }
 
     async populateDatabase() {
         console.log('Populating database with Make.com modules...');
+
+        // Ensure all columns exist (idempotent migration for existing DBs)
+        this.db.addMissingColumns();
 
         const apiKey = process.env.MAKE_API_KEY;
         const useApiRebuild = apiKey && apiKey !== 'your_api_key_here';
@@ -4940,6 +5570,19 @@ export class ModuleScraper {
                 }
             }
             console.log(`Done! ${success} modules inserted, ${failed} failed.`);
+        }
+
+        // Blueprint schema enrichment — layers accurate params on top of hand-written catalog
+        console.log('\n🔄 Enriching module schemas from blueprint metadata...');
+        const blueprintEnrich = enrichModulesFromBlueprints(this.db);
+        console.log(`✅ Blueprint-enriched: ${blueprintEnrich.updated} modules (${blueprintEnrich.skipped} skipped)`);
+
+        // Official Make MCP enrichment — highest priority, runs if data file exists
+        const officialMcpPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'data', 'official-mcp-schemas.json');
+        if (fs.existsSync(officialMcpPath)) {
+            console.log('\n🔄 Enriching from official Make MCP schemas...');
+            const mcpEnrich = enrichModulesFromOfficialMcp(this.db);
+            console.log(`✅ Official-MCP-enriched: ${mcpEnrich.updated} modules (${mcpEnrich.skipped} skipped)`);
         }
 
         // Populate blueprint templates from example flows folders

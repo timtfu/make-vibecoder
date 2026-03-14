@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0] - 2026-03-14
+
+### Added
+- **Blueprint metadata enrichment** — New `src/scrapers/enrich-from-blueprints.ts` scraper. After inserting the base catalog, `npm run scrape` now scans all blueprint JSON files and extracts accurate parameter schemas from `metadata.parameters` + `metadata.expect` on each flow node. Takes the **union** of both arrays (unlike the old extractor which only used whichever array was larger). 290 modules enriched from the 223-blueprint corpus.
+- **Official Make MCP enrichment** — New `src/scrapers/enrich-from-official-mcp.ts` and `data/official-mcp-schemas.json`. Once the JSON file is populated (via Make MCP harvest sessions), `npm run scrape` applies authoritative schemas with the highest priority (`schema_source: 'official-mcp'`). Supports upsert — inserts new modules if not already in catalog.
+- **`schema_source` column** — New `TEXT DEFAULT 'hand-written'` column on the `modules` table. Values: `'official-mcp'` (fully accurate) | `'blueprint-extracted'` (Make-authored) | `'hand-written'` (unverified). Exposed in `get_module` response so the AI can calibrate confidence.
+- **`db.enrichModuleSchema()`** — New DB method for schema enrichment with priority protection. Blueprint-extracted enrichment cannot downgrade a module already marked `'official-mcp'`.
+- **`db.updateModuleMetadata()`** — New DB method for updating name/description/type/output_fields on an existing module (used by official-mcp enricher).
+- **`addMissingColumns()` called early** — Now called at the start of `populateDatabase()` (before both API and catalog paths) so all columns exist before any INSERT.
+
+### Changed
+- `get_module` response now includes `schema_source` field.
+- `insertModule()` now persists `schema_source` (defaults to `'hand-written'` if not provided).
+- Version bumped to 1.9.0.
+
+## [1.8.0] - 2026-03-14
+
+### Added
+- **83 new modules** across 9 existing and 6 brand-new apps — catalog grows from 566 → 649 modules.
+- **New app: Groq** — 7 modules: Chat Completion, JSON Chat Completion, Vision, Transcription (Whisper), Translation (Whisper), Simple Text Prompt, Make an API Call.
+- **New app: Mistral AI** — 4 modules: Chat Completion, Embeddings, List Models, Make an API Call.
+- **New app: DeepSeek AI** — 4 modules: Chat Completion, List Models, Get Balance, Make an API Call.
+- **New app: Open Router** — 4 modules: Chat Completion, Chat Completion with Fallback, List Models, Make an API Call.
+- **New app: xAI (Grok)** — 3 modules: Create a Completion, Generate an Image, Make an API Call.
+- **New app: Azure OpenAI** — 5 modules: Chat Completion, DALL-E 3 Image Generation, Whisper Transcription, Whisper Translation, Make an API Call.
+- **OpenAI** (+23 modules): Responses API (`createModelResponse`, `getModelResponse`, `deleteModelResponse`, `listInputItems`), Sora video (`generateVideo`, `remixVideo`, `getVideo`, `deleteVideo`, `listVideos`), image editing (`editImage`), batch API (`createBatch`, `cancelBatch`, `getBatch`, `listBatches`), Moderation, Translation (Whisper), Vector Store file batch, container file download, `transformTextToStructuredData`, `uploadFile`, `makeApiCall`, 2 new triggers (batch completed, video jobs).
+- **Anthropic Claude** (+15 modules): Simple Text Prompt, Make an API Call, Files API (upload/download/get/delete/list), Skills API (create/createVersion/get/getVersion/delete/deleteVersion/list/listVersions).
+- **Gemini AI** (+12 modules): Simple Text Prompt, Extract Structured Data, Image Generation (Imagen), Video Generation (Veo), File Search Stores CRUD (6 modules), Make an API Call.
+- **AI Tools (Make)** (+8 modules): Extract, Categorize, Translate, Detect Language, Summarize, Analyze Sentiment, Standardize, Chunk Text.
+- **Perplexity AI** (+2 modules): List Search Results, Make an API Call.
+- **Tools by Make** (+2 modules): `ComposeTransformer` (Compose), `TextSwitcher` (Text switcher).
+
+### Changed
+- Version bumped to 1.8.0.
+
 ## [1.7.0] - 2026-03-12
 
 ### Added
