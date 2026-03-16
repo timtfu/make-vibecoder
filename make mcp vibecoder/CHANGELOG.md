@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.1] - 2026-03-16
+
+### Fixed
+- **`insertModule()` priority-aware upsert** — Replaced `INSERT OR REPLACE` (which silently wiped higher-priority schema data on re-scrape) with `ON CONFLICT(id) DO UPDATE SET` using per-column CASE guards. Modules marked `official-mcp` now protect `name`, `type`, `description`, `parameters`, `output_fields`, `connection_type`, and `schema_source` from being overwritten by a lower-priority re-scrape. Modules marked `blueprint-extracted` protect `parameters`, `connection_type`, and `schema_source`.
+- **`enrichModuleSchema()` empty-parameters guard** — An enrichment call with `parameters: []` is now treated as a no-op and no longer wipes existing parameter schemas with an empty array.
+- **`updateModuleMetadata()` empty-output_fields guard** — Same fix: `output_fields: []` / `null` no longer overwrites valid existing output field schemas.
+
+### Changed
+- **`data/official-mcp-schemas.json` expanded** — Grew from ~500 to 565 entries; 116 modules now have full authoritative parameter schemas. Apps with full coverage added: `google-drive` (8 modules), `discord` (7), `hubspotcrm` (10), `google-calendar` (2+), `google-sheets` (partial).
+- **`data/additional-nodes-schema.json` added** — New 423-line supplemental schema file for modules not yet covered by the main official-mcp harvest.
+
 ## [1.9.0] - 2026-03-14
 
 ### Added

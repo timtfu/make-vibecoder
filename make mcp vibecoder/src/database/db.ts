@@ -142,10 +142,44 @@ export class MakeDatabase {
     }
 
     insertModule(module: any) {
-        // Use INSERT OR REPLACE so re-runs don't fail
+        // Priority-aware upsert: higher-priority schema data is never overwritten by a
+        // lower-priority re-scrape.
+        //
+        // Protection rules on conflict:
+        //   official-mcp      → protect name, type, description, parameters,
+        //                        connection_type, output_fields, schema_source
+        //   blueprint-extracted → protect parameters, connection_type, schema_source
+        //   hand-written       → update everything (baseline)
+        //
+        // Always updated regardless of priority:
+        //   app, examples, documentation, is_deprecated, scope,
+        //   listener, returns_multiple, app_version
         const stmt = this.db.prepare(`
-            INSERT OR REPLACE INTO modules (id, name, app, type, description, parameters, examples, documentation, output_fields, connection_type, is_deprecated, scope, listener, returns_multiple, app_version, schema_source)
+            INSERT INTO modules (id, name, app, type, description, parameters, examples, documentation, output_fields, connection_type, is_deprecated, scope, listener, returns_multiple, app_version, schema_source)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name        = CASE WHEN modules.schema_source = 'official-mcp'
+                                 THEN modules.name ELSE excluded.name END,
+              app         = excluded.app,
+              type        = CASE WHEN modules.schema_source = 'official-mcp'
+                                 THEN modules.type ELSE excluded.type END,
+              description = CASE WHEN modules.schema_source = 'official-mcp'
+                                 THEN modules.description ELSE excluded.description END,
+              parameters  = CASE WHEN modules.schema_source IN ('official-mcp', 'blueprint-extracted')
+                                 THEN modules.parameters ELSE excluded.parameters END,
+              examples    = excluded.examples,
+              documentation = excluded.documentation,
+              output_fields = CASE WHEN modules.schema_source = 'official-mcp'
+                                   THEN modules.output_fields ELSE excluded.output_fields END,
+              connection_type = CASE WHEN modules.schema_source IN ('official-mcp', 'blueprint-extracted')
+                                     THEN modules.connection_type ELSE excluded.connection_type END,
+              is_deprecated   = excluded.is_deprecated,
+              scope           = excluded.scope,
+              listener        = excluded.listener,
+              returns_multiple = excluded.returns_multiple,
+              app_version     = excluded.app_version,
+              schema_source   = CASE WHEN modules.schema_source IN ('official-mcp', 'blueprint-extracted')
+                                     THEN modules.schema_source ELSE excluded.schema_source END
         `);
 
         stmt.run(
@@ -235,7 +269,8 @@ export class MakeDatabase {
         const setParts: string[] = ['schema_source = ?'];
         const values: any[] = [data.schema_source];
 
-        if (data.parameters !== undefined) {
+        // Treat an empty array as "no data" — never wipe existing parameters with [].
+        if (data.parameters !== undefined && data.parameters.length > 0) {
             setParts.push('parameters = ?');
             values.push(JSON.stringify(data.parameters));
         }
@@ -275,7 +310,8 @@ export class MakeDatabase {
         if (data.name) { setParts.push('name = ?'); values.push(data.name); }
         if (data.description) { setParts.push('description = ?'); values.push(data.description); }
         if (data.type) { setParts.push('type = ?'); values.push(data.type); }
-        if (data.output_fields !== undefined) {
+        // Treat an empty array as "no data" — never wipe existing output_fields with [].
+        if (data.output_fields !== undefined && data.output_fields !== null && data.output_fields.length > 0) {
             setParts.push('output_fields = ?');
             values.push(JSON.stringify(data.output_fields));
         }

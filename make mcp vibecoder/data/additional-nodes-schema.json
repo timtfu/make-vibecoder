@@ -1,0 +1,424 @@
+{
+  "google-sheets:ActionAddRow": {
+    "name": "Add a row",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Adds a new row to a Google Sheets worksheet.",
+    "connection_type": "account:google",
+    "parameters": [
+      {
+        "name": "account",
+        "label": "Connection",
+        "type": "account:google",
+        "required": true,
+        "options": {
+          "nested": [
+            {
+              "name": "sheetId",
+              "label": "File",
+              "type": "select",
+              "required": true,
+              "options": {
+                "store": "rpc://RpcSpreadsheet",
+                "nested": [
+                  {
+                    "name": "worksheetId",
+                    "label": "Worksheet",
+                    "help": "The worksheet must contain a table with column names and at least one filled row.",
+                    "type": "select",
+                    "required": true,
+                    "options": {
+                      "store": "rpc://RpcWorksheet",
+                      "nested": {
+                        "store": "rpc://RpcHeader?type=expect",
+                        "domain": "expect"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "output_fields": [
+      {"name": "rowId", "label": "Row ID", "type": "text"},
+      {"name": "sheetId", "label": "Sheet ID", "type": "text"},
+      {"name": "sheetUrl", "label": "Sheet URL", "type": "url"}
+    ]
+  },
+  "google-sheets:TriggerNewRow": {
+    "name": "Watch a worksheet",
+    "app": "Google Sheets",
+    "type": "trigger",
+    "description": "Triggers when a user adds a new row to a selected worksheet.",
+    "connection_type": "account:google",
+    "parameters": [
+      {
+        "name": "account",
+        "label": "Connection",
+        "type": "account:google",
+        "required": true,
+        "on": {"change": "reset_epoch"},
+        "options": {
+          "nested": [
+            {
+              "name": "sheetId",
+              "label": "File",
+              "type": "select",
+              "required": true,
+              "on": {"change": "reset_epoch"},
+              "options": {
+                "store": "rpc://RpcSpreadsheet",
+                "nested": [
+                  {
+                    "name": "worksheetId",
+                    "label": "Worksheet",
+                    "help": "The worksheet must contain a table with column names and at least one filled row.",
+                    "type": "select",
+                    "required": true,
+                    "on": {"change": "reset_epoch"},
+                    "options": "rpc://RpcWorksheet"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "maxResults",
+        "label": "Maximum number of returned rows",
+        "type": "uinteger",
+        "required": false
+      }
+    ],
+    "output_fields": []
+  },
+  "google-sheets:ActionGetReport": {
+    "name": "Select rows",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Returns rows that match the criteria specified in a selected worksheet.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "google-sheets:ActionUpdateRow": {
+    "name": "Update a row",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Updates an existing row in a Google Sheets worksheet.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "google-sheets:ActionDeleteRow": {
+    "name": "Delete a row",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Deletes a row from a Google Sheets worksheet.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "google-sheets:ActionGetCell": {
+    "name": "Get a cell",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Returns the contents of a specified cell.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "google-sheets:ActionUpdateCell": {
+    "name": "Update a cell",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Updates the contents of a specified cell.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "google-sheets:ActionListWorksheets": {
+    "name": "List worksheets",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Gets a list of worksheets in spreadsheet.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "google-sheets:ActionAddWorksheet": {
+    "name": "Add a worksheet",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Adds a new worksheet to a Google Sheets spreadsheet.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "google-sheets:ActionDeleteWorksheet": {
+    "name": "Delete a worksheet",
+    "app": "Google Sheets",
+    "type": "action",
+    "description": "Deletes a worksheet from a Google Sheets spreadsheet.",
+    "connection_type": "account:google",
+    "parameters": [],
+    "output_fields": []
+  },
+  "airtable:ActionCreateRecord": {
+    "name": "Create a record",
+    "app": "Airtable",
+    "type": "action",
+    "description": "Creates a new record in Airtable.",
+    "connection_type": "account:airtable2",
+    "parameters": [
+      {
+        "name": "__IMTCONN__",
+        "type": "account:airtable2",
+        "label": "Connection",
+        "options": {
+          "nested": {
+            "store": [
+              {
+                "name": "base",
+                "type": "select",
+                "label": "Base",
+                "options": {
+                  "store": "rpc://airtable@2/RpcGetBases",
+                  "nested": [
+                    {
+                      "name": "table",
+                      "type": "select",
+                      "label": "Table",
+                      "options": {
+                        "store": "rpc://airtable@2/RpcGetTables",
+                        "nested": "rpc://airtable@2/RpcGetSchema"
+                      },
+                      "required": true
+                    }
+                  ]
+                },
+                "mappable": false,
+                "required": true
+              },
+              {
+                "help": "If smart links is enabled, you can a) use names in linked record fields instead of record IDs to select an existing record or create a new one if it doesn't exist b) use (add) new options in single/multiple select fields.",
+                "name": "typecast",
+                "type": "boolean",
+                "label": "Smart links",
+                "default": false,
+                "required": true
+              }
+            ],
+            "domain": "expect"
+          }
+        },
+        "required": true
+      }
+    ],
+    "output_fields": []
+  },
+  "airtable:ActionUpdateRecords": {
+    "name": "Update a record",
+    "app": "Airtable",
+    "type": "action",
+    "description": "Updates a record by its ID.",
+    "connection_type": "account:airtable2",
+    "parameters": [],
+    "output_fields": []
+  },
+  "airtable:ActionGetRecord": {
+    "name": "Retrieve a record",
+    "app": "Airtable",
+    "type": "action",
+    "description": "Retrieves a single record by its ID.",
+    "connection_type": "account:airtable2",
+    "parameters": [],
+    "output_fields": []
+  },
+  "airtable:ActionDeleteRecord": {
+    "name": "Delete a record",
+    "app": "Airtable",
+    "type": "action",
+    "description": "Deletes a record by its ID.",
+    "connection_type": "account:airtable2",
+    "parameters": [],
+    "output_fields": []
+  },
+  "airtable:ActionSearchRecords": {
+    "name": "Search records",
+    "app": "Airtable",
+    "type": "action",
+    "description": "Searches for specific records or returns all records.",
+    "connection_type": "account:airtable2",
+    "parameters": [],
+    "output_fields": []
+  },
+  "airtable:TriggerWatchRecords": {
+    "name": "Watch records",
+    "app": "Airtable",
+    "type": "trigger",
+    "description": "Returns all newly created or updated records in a view.",
+    "connection_type": "account:airtable2",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:createDataSourceItem": {
+    "name": "Create a Data Source Item",
+    "app": "Notion",
+    "type": "action",
+    "description": "Creates a new item in a data source.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [
+      {
+        "name": "__IMTCONN__",
+        "type": "account:notion2,notion3",
+        "label": "Connection",
+        "options": {
+          "nested": {
+            "store": [
+              {
+                "name": "select",
+                "type": "select",
+                "label": "Input method",
+                "options": [
+                  {
+                    "label": "Generic Fields",
+                    "value": "map",
+                    "nested": [
+                      {
+                        "name": "data_source",
+                        "type": "text",
+                        "label": "Data Source ID",
+                        "required": true
+                      },
+                      {
+                        "help": "Key: The name of a field, Value Type: Each fields have their own value type, Value: The input value",
+                        "name": "fields",
+                        "type": "array",
+                        "label": "Fields"
+                      }
+                    ]
+                  },
+                  {
+                    "label": "Specific Fields of Data Source",
+                    "value": "list",
+                    "default": true
+                  }
+                ],
+                "mappable": false,
+                "required": true
+              }
+            ],
+            "domain": "expect"
+          }
+        },
+        "required": true
+      }
+    ],
+    "output_fields": [
+      {"name": "object", "type": "text", "label": "Object"},
+      {"name": "id", "type": "text", "label": "Database Item ID"},
+      {"name": "created_time", "type": "date", "label": "Created Time"},
+      {"name": "last_edited_time", "type": "date", "label": "Last Edited Time"},
+      {"name": "in_trash", "type": "boolean", "label": "In trash"},
+      {"name": "public_url", "type": "text", "label": "Public URL"},
+      {"name": "request_id", "type": "text", "label": "Request ID"},
+      {"name": "url", "type": "text", "label": "URL"},
+      {"name": "archived", "type": "boolean", "label": "Archived"}
+    ]
+  },
+  "notion:watchDatabaseItems": {
+    "name": "Watch Data Source Items",
+    "app": "Notion",
+    "type": "trigger",
+    "description": "Triggers when a Data source (legacy database) item is created or updated.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:watchDatabasesPages": {
+    "name": "Watch Objects",
+    "app": "Notion",
+    "type": "trigger",
+    "description": "Triggers when a data source, page or legacy database is created and updated.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:createAPage1": {
+    "name": "Create a Page",
+    "app": "Notion",
+    "type": "action",
+    "description": "Creates a new page in a specified page.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:updateAPage": {
+    "name": "Update a Page",
+    "app": "Notion",
+    "type": "action",
+    "description": "Updates an existing page.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:getAPage": {
+    "name": "Get a Page",
+    "app": "Notion",
+    "type": "action",
+    "description": "Gets a specified page.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:getADatabaseItem": {
+    "name": "Get a Data Source Item",
+    "app": "Notion",
+    "type": "action",
+    "description": "Gets a specified data source (or legacy database) item.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:updateADatabaseItem": {
+    "name": "Update a Data Source Item",
+    "app": "Notion",
+    "type": "action",
+    "description": "Updates an existing data source (or legacy database) item.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:searchObjects1": {
+    "name": "Search Objects",
+    "app": "Notion",
+    "type": "search",
+    "description": "Searches for objects of a page, database, or database item.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:createADatabaseV2": {
+    "name": "Create a Database",
+    "app": "Notion",
+    "type": "action",
+    "description": "Creates a new database with default data source.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  },
+  "notion:makeApiCall": {
+    "name": "Make an API Call",
+    "app": "Notion",
+    "type": "action",
+    "description": "Performs an arbitrary authorized API call.",
+    "connection_type": "account:notion2,notion3",
+    "parameters": [],
+    "output_fields": []
+  }
+}

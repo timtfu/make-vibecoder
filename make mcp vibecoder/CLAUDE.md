@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working on the **make-mcp** proj
 
 **make-mcp** is an unofficial MCP server for Make.com that allows AI assistants to search, build, validate, and deploy Make.com automation scenarios through the Model Context Protocol. It is the Make.com equivalent of the `n8n-mcp` server also present in this repository.
 
-The server exposes a catalog of **559 modules across 148 apps** and **266 real blueprint templates** extracted from production Make.com flows. AI assistants can use it to compose and deploy complete automation scenarios directly from conversation.
+The server exposes a catalog of **1000+ modules across 176+ apps** and **266 real blueprint templates** extracted from production Make.com flows. AI assistants can use it to compose and deploy complete automation scenarios directly from conversation.
 
 ### What it is NOT
 - Not affiliated with Make.com / Integromat
@@ -18,31 +18,38 @@ The server exposes a catalog of **559 modules across 148 apps** and **266 real b
 ## Architecture
 
 ```
-make mcp/
+make mcp vibecoder/
 ├── src/
 │   ├── mcp/
-│   │   └── server.ts              # All MCP tool definitions (~1700 lines)
+│   │   └── server.ts                    # All MCP tool definitions (~1700 lines)
 │   ├── database/
-│   │   ├── db.ts                  # SQLite wrapper (searchModules, searchTemplates, getTemplate, insertModule, insertTemplate)
-│   │   └── schema.sql             # Tables: modules, templates, examples + FTS5 index
+│   │   ├── db.ts                        # SQLite wrapper — all DB access goes through here
+│   │   └── schema.sql                   # Tables: modules, templates, examples + FTS5 index
 │   └── scrapers/
-│       ├── scrape-modules.ts      # Module catalog (~4960 lines) + populateDatabase()
-│       ├── populate-templates.ts  # Loads blueprint JSON files into templates table
-│       ├── extract-from-blueprints.ts  # Core blueprint extraction engine
-│       └── module-mapping.ts      # Type mapping utilities
+│       ├── scrape-modules.ts            # Module catalog (~5000 lines) + populateDatabase()
+│       ├── populate-templates.ts        # Loads blueprint JSON → templates table
+│       ├── populate-examples.ts         # Extracts module configs → examples table
+│       ├── enrich-from-blueprints.ts    # Blueprint metadata → DB enrichment (schema_source: blueprint-extracted)
+│       ├── enrich-from-official-mcp.ts  # official-mcp-schemas.json → DB enrichment (highest priority)
+│       ├── scrape-from-make-api.ts      # Full API-driven rebuild (requires MAKE_API_KEY)
+│       ├── extract-from-blueprints.ts   # Core blueprint extraction engine
+│       └── module-mapping.ts            # Type mapping utilities
 ├── data/
-│   ├── make-modules.db            # SQLite database (source of truth at runtime)
-│   ├── flows2-new-modules.ts      # Generated code from "Make example flows 2"
-│   └── tier1/2/3-modules.ts      # Generated code from "Make example flows 1"
-├── dist/                          # Compiled output (run npm run build to update)
-├── .env                           # MAKE_API_KEY, MAKE_API_URL, MAKE_TEAM_ID, MAKE_ORGANIZATION_ID
+│   ├── make-modules.db                  # SQLite database (source of truth at runtime)
+│   ├── official-mcp-schemas.json        # Authoritative schemas from Make MCP harvest (565 entries, 116 with full params)
+│   ├── additional-nodes-schema.json     # Supplemental schemas not yet in official-mcp-schemas.json
+│   ├── flows2-new-modules.ts            # Generated code from "Make example flows 2"
+│   └── tier1/2/3-modules.ts            # Generated code from "Make example flows 1"
+├── dist/                                # Compiled output (run npm run build to update)
+├── .env                                 # MAKE_API_KEY, MAKE_API_URL, MAKE_TEAM_ID, MAKE_ORGANIZATION_ID
 ├── package.json
 └── CHANGELOG.md
 ```
 
-The blueprint source folders live at the repo root (sibling to `make mcp/`):
-- `Make example flows/` — 42 blueprints (original batch)
-- `Make example flows 2/` — 223 blueprints (expanded batch)
+The blueprint source folders live at the repo root (sibling to `make mcp vibecoder/`):
+- `Make example Blueprints/` — 224 blueprints (batch 3, added v1.8.0)
+
+> **Note:** `Make example flows/` and `Make example flows 2/` referenced in older docs no longer exist as separate folders. The active folder is `Make example Blueprints/`.
 
 ---
 
@@ -51,15 +58,22 @@ The blueprint source folders live at the repo root (sibling to `make mcp/`):
 | Tool | Description |
 |------|-------------|
 | `tools_documentation` | Entry point — call first to understand capabilities |
-| `search_modules` | FTS search across 559 modules |
-| `get_module` | Full parameter schema for a module ID |
+| `search_modules` | FTS search across 649 modules |
+| `get_module` | Full parameter schema for a module ID (`essentials: true` = required params only) |
+| `search_module_examples` | Real-world module configs from 502 production blueprints |
 | `check_account_compatibility` | Live Make API check for module availability |
 | `validate_scenario` | Blueprint validation before deployment |
 | `create_scenario` | Deploy blueprint to Make.com (requires API key) |
-| `list_scenarios` | List existing scenarios in the account |
+| `get_scenario` | Get a scenario's blueprint by ID |
+| `update_scenario` | Overwrite an existing scenario |
+| `delete_scenario` | Delete a scenario (requires `confirm: true`) |
+| `run_scenario` | Manually trigger a scenario |
+| `list_scenarios` | List all scenarios in the account |
+| `list_executions` | View execution history and errors |
+| `health_check` | Verify API key + return account details |
 | `search_templates` | Search 266 real blueprints by keyword / category / difficulty |
 | `get_template` | Return complete deployable blueprint JSON by template ID |
-| `list_apps` | List all 148 apps with module counts |
+| `list_apps` | List all 176+ apps with module counts |
 
 **Fastest workflow for building a scenario:**
 1. `search_templates` — find a matching real blueprint
@@ -72,15 +86,13 @@ The blueprint source folders live at the repo root (sibling to `make mcp/`):
 ## Common Commands
 
 ```bash
-cd "make mcp"
+cd "make mcp vibecoder"
 
 # Build TypeScript → dist/
 npm run build
 
-# Rebuild SQLite database (modules + templates)
+# Rebuild SQLite database (modules + templates + examples + enrichments)
 npm run scrape
-# or with local tsx:
-./node_modules/.bin/tsx src/scrapers/scrape-modules.ts
 
 # Run tests
 npm test
@@ -97,11 +109,13 @@ The MCP server needs to be reloaded in Claude Desktop after a rebuild — remind
 
 ## Adding New Blueprints
 
-When new blueprint JSON files are available in a new folder:
+When new `.blueprint.json` files arrive in a new folder:
 
-1. Run `node extract-flows2.js` (update the folder path inside the script first) to generate a new `data/flows-new-modules.ts`
-2. The merge script appends new modules to `src/scrapers/scrape-modules.ts` before the closing `];`
-3. Run `npm run scrape` to rebuild the database — this also auto-loads all blueprint files from all `Make example flows*/` folders into the templates table via `populate-templates.ts`
+1. Add the folder path to `getBlueprintFolders()` in **both**:
+   - `src/scrapers/populate-templates.ts`
+   - `src/scrapers/populate-examples.ts`
+2. Run `npm run scrape` — templates, examples, and enrichments auto-populate.
+3. Update module/template counts in this file and in the root `CLAUDE.md`.
 
 ---
 
@@ -148,10 +162,16 @@ Use when a session has grown long (multiple large files read, many changes made)
 
 ## Key Pitfalls
 
-- `scrape-modules.ts` is ~5000 lines — search for the insertion point (`        ];`) at line ~4932 when adding new modules
-- The FTS5 table (`modules_fts`) must be kept in sync with the `modules` table — `insertModule()` in `db.ts` handles both
-- Template search is LIKE-based (multi-word), not FTS5 — each word is searched independently across name, description, and modules_used
-- The `LIMIT 1000` on `searchModules('*')` covers the full catalog; FTS search returns max 20 results per query
-- `.env` is gitignored — the API key, team ID, and org ID must be set locally
-- `Make example flows*/` folder paths are hardcoded in `populate-templates.ts` — update `getBlueprintFolders()` if folders are renamed
-- The `official make mcp/` directory is unused — do not modify it
+- `scrape-modules.ts` is ~5000 lines — search for the insertion point (`        ];`) near the end when adding new modules. Use `Grep` to find `^        \];`
+- **Never use `INSERT OR REPLACE` for modules** — `insertModule()` uses a priority-aware `ON CONFLICT DO UPDATE` with CASE guards. Direct `INSERT OR REPLACE` would silently wipe `official-mcp`-quality schemas with lower-priority data.
+- **`official-mcp-schemas.json` is the highest-priority schema source** — grow it by querying `mcp__make__app-module_get` for each app. Format: `{ "moduleId": { name, description, type, app, connection_type, parameters, output_fields } }`. Run `npm run scrape` after updating it.
+- The FTS5 table (`modules_fts`) must stay in sync with `modules` — `insertModule()` in `db.ts` handles both; never INSERT directly into `modules`
+- `templates_fts` is only populated by `insertTemplate()` — a fresh DB without a scrape will return empty template searches
+- Template search is LIKE-based (multi-word), NOT FTS5 — each word is searched independently; keep queries short and specific
+- The `LIMIT 1000` on `searchModules('*')` covers the full catalog; FTS search returns max 20 results
+- `.env` is gitignored — `MAKE_API_KEY`, `MAKE_TEAM_ID`, `MAKE_ORGANIZATION_ID`, `MAKE_API_URL` must be set locally
+- Blueprint folder paths are hardcoded in `getBlueprintFolders()` in both `populate-templates.ts` and `populate-examples.ts` — update both if folders change
+- **The Make.com module catalog API endpoint does NOT exist** — `GET /apps/{name}/modules` returns HTTP 404. Do not try to scrape modules from the live API; use the static catalog
+- `dist/` is stale until `npm run build` runs — edits to `src/` have no effect on the running server without a rebuild
+- `scrape-modules.ts` does NOT load dotenv (by design) — the API scraper routing (`MAKE_API_KEY` in env → API scraper) relies on shell env, not the .env file
+- Port 6277 used by the MCP inspector can get stuck — kill it with `kill $(lsof -ti :6277)` before retrying
